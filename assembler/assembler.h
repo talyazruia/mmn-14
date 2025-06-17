@@ -16,10 +16,32 @@ typedef struct {
 	int op;
 }command;
 
+typedef struct {
+	char *name;
+	int param;
+}command1;
+
+int IC=0;
+int DC=0;
+
+typedef struct {
+	char * name;
+	int addres;
+	int type;
+	int ex/en;
+}SEMEL;
+
+typedef struct {
+	char * name;
+	char *string;
+}macro;
+
+int error=0;
+
 int main(int argc, char * argv[]);
-FILE *end_file_name_as(int argc, char * argv[], int error,int i);
-void row_analysis(FILE * f, int error);
+FILE *end_file_name_as(int argc, char * argv[],int i);
+void row_analysis(FILE * f);
 void clear_row_arry();
-FILE *end_file_name_am(int argc, char * argv[], int error, int i); 
+FILE *end_file_name_am(int argc, char * argv[], int i); 
 
 #endif

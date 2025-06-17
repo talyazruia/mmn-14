@@ -2,7 +2,7 @@
 
 int main(int argc, char * argv[])
 {
-	commands cmd[] = {
+	command cmd[] = {
 		{"mov", 2, 0},
 		{"cmp", 2, 1},
 		{"add", 2, 2},
@@ -19,12 +19,17 @@ int main(int argc, char * argv[])
 		{"jsr", 1, 13},
 		{"rts", 0, 14},
 		{"stop", 0, 15}}
-	FILE *f;
-	FILE *f1;
 
-	 /* מערך של מצביעים למחרוזות, מוקצה סטטית על ה־stack*/
-	int i=1;
-	int error=0;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
+	command1 cmd1[]={
+		{".data", },
+		{".string",1},
+		{".mat", },
+		{".entry", 1},
+		{".extern", 1}}
+		
+	FILE *f; /* מערך של מצביעים למחרוזות, מוקצה סטטית על ה־stack*/
+	FILE *f1;
+	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
 	if(argc==1)
 	{
 		fprintf(stderr,"error, ther no input files.\n");
@@ -32,9 +37,9 @@ int main(int argc, char * argv[])
 	}
 	for(;i<argc; i++)
 	{
-		f=end_file_name_as( argc, argv ,error, i);
-		f1=macro_analysis(f,cmd[]);
-		row_analysis(f1,error);
+		f=end_file_name_as( argc, argv , i);
+		f1=macro_analysis(f,cmd);
+		row_analysis(f);
 	}
 return 0;
 }

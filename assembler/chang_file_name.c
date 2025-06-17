@@ -1,6 +1,6 @@
 #include "assembler.h"
 
-FILE *end_file_name_as(int argc, char * argv[], int error, int i)
+FILE *end_file_name_as(int argc, char * argv[], int i)
 {
 	char * file_name;
 	FILE * f;
