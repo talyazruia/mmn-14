@@ -1,0 +1,3 @@
+Error: Invalid macro name (conflicts with command)
+error, invalid macro definition
+error, extra text after 'mcroend'

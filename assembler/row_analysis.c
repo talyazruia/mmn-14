@@ -1,4 +1,4 @@
-#include "assembler.h"
+/*#include "assembler.h"
 
 void row_analysis(FILE *      )
 {
@@ -28,7 +28,7 @@ void row_analysis(FILE *      )
 		{
 			continue;
 		}
-	/*בדיקת חריגת אורך*/
+	
         	if (strlen(token) >= 31)
         	{
             		fprintf(stderr, "Error: label too long (max 30 characters): %s\n", token);
@@ -85,7 +85,7 @@ void row_analysis(FILE *      )
 }
 				
 		}
-''            		 /*זה כנראה תווית צריך לבדוק שהשם שלה לא כמו של הפקודות*/
+''            		
 								
         	}
 }
@@ -100,3 +100,4 @@ void clear_row_arry()
 	char c;
     	while ((c = getchar()) != '\n' && c != EOF);
 }
+*/

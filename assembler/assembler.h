@@ -21,27 +21,28 @@ typedef struct {
 	int param;
 }command1;
 
-int IC=0;
-int DC=0;
+extern int IC;
+extern int DC;
 
 typedef struct {
 	char * name;
 	int addres;
 	int type;
-	int ex/en;
+	int ex;
 }SEMEL;
 
 typedef struct {
 	char * name;
-	char *string;
+	char *content;
 }macro;
 
-int error=0;
+extern int error;
 
 int main(int argc, char * argv[]);
 FILE *end_file_name_as(int argc, char * argv[],int i);
 void row_analysis(FILE * f);
 void clear_row_arry();
 FILE *end_file_name_am(int argc, char * argv[], int i); 
+FILE *macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i);
 
 #endif

@@ -1,170 +1,152 @@
+#include "assembler.h"
 
-   FILE * macro_analysis(FILE * f1, command cmd[], command1 cmd1[]) {
-    macro **macros = NULL;
+
+FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i) {
+    char row[MAX_LEN_OF_ROW+2];
+    char row_copy[MAX_LEN_OF_ROW+2];
+    char* token;
+    char* macro_name;
+    char* line_token;
+    char* temp_file_name;
+    macro** macros = NULL;
+    macro* new_macro;
     int macro_count = 0;
-    int macro_capacity = 0;
-    char *name;
-    char *content;
-    char row[MAX_LEN_OF_ROW + 2];
-    char *token;
-    char *token1;
-    int i;
-    FILE *f2; /* Output file pointer - ADDED */
-    int changes_made = 0; /* Track if any macro replacements were made - ADDED */
-    
-    /* Open output file - ADDED */
-    f2 = fopen("output.txt", "w");
+    int changes_made = 0;
+    int matched;
+    int is_command;
+    int j;
+    FILE* f2;
+	f2= end_file_name_am(0, argv, i);
+
     if (f2 == NULL) {
-        fprintf(stderr, "Error: Cannot open output file\n");
-        return NULL;
+	fprintf(stderr, "Failed to create .am file for %s\n", argv[i]);
+        return f1;
     }
-    
-    while (!feof(f1)) {
-        /* Read a line from file */
-        if (fgets(row, sizeof(row), f1) == NULL) {
-            break; /* End of file or error - ADDED CHECK */
-        }
-        
-        /* Check if line is too long */
-        if (strchr(row, '\n') == NULL && !feof(f1)) { /* ADDED feof check */
-            fprintf(stderr, "Error: line too long (more than %d characters)\n", MAX_LEN_OF_ROW);
-            error = 1;
-            /* clear_row_arry(); - COMMENTED OUT - function not defined */
-           /* ADDED continue to skip this line */
-        }
-        
-        token = strtok(row, "\n\t\r ");
+
+    while (fgets(row, MAX_LEN_OF_ROW, f1) != NULL) {
+        strcpy(row_copy, row);
+        token = strtok(row_copy, " \t\r\n");
+        matched = 0;
+
         if (token != NULL && strcmp(token, "mcro") == 0) {
-            token = strtok(NULL, "\n\t\r "); /* Get the next token after 'mcro' */
-            
-            /* Check if macro name exists - ADDED NULL CHECK */
-            if (token == NULL) {
-                fprintf(stderr, "Error: macro name missing\n");
+            macro_name = strtok(NULL, " \t\r\n");
+            if (macro_name == NULL || strtok(NULL, " \t\r\n") != NULL) {
+                fprintf(stderr, "error, invalid macro definition\n");
                 error = 1;
                 continue;
             }
-            
-            /* Check if macro name is same as command name */
-            for (i = 0; i < 21; i++) {
-                if (strcmp(cmd[i].name, token) == 0 || strcmp(cmd1[i].name, token) == 0) {
-                    error = 1;
-                    fprintf(stderr, "Error: macro name not valid\n"); /* FIXED MESSAGE */
-                    break; /* ADDED break to exit loop */
-                }
+
+            is_command = 0;
+            for (j = 0; j < 16; j++) {
+                if (strcmp(cmd[j].name, macro_name) == 0) is_command = 1;
             }
-            
-            /* Skip if error found */
-            if (error == 1) {
+            for (j = 0; j < 5 && !is_command; j++) {
+                if (strcmp(cmd1[j].name, macro_name) == 0) is_command = 1;
+            }
+
+            if (is_command) {
+                fprintf(stderr, "Error: Invalid macro name (conflicts with command)\n");
+                error = 1;
+                while (fgets(row, sizeof(row), f1)) {
+                    strcpy(row_copy, row);
+                    line_token = strtok(row_copy, " \t\r\n");
+                    if (line_token && strcmp(line_token, "mcroend") == 0) break;
+                }
                 continue;
             }
-            
-            /* Allocate memory for macro name */
-            name = (char *)malloc(strlen(token) + 1);
-            if (name == NULL) {
-                fprintf(stderr, "Memory allocation failed\n");
-			continue;
-             /*   fclose(f2);  ADDED file cleanup */
-               /* return NULL;  CHANGED from exit(1) */
+
+            new_macro = (macro*)malloc(sizeof(macro));
+            if (new_macro == NULL) {
+                fprintf(stderr, "error, memory allocation failed\n");
+                error = 1;
+                continue;
             }
-            strcpy(name, token);
-            
-            /* Allocate and initialize content buffer */
-            content = (char *)calloc(1, sizeof(char) * MAX_CONTENT_SIZE);
-            if (content == NULL) {
-                fprintf(stderr, "Memory allocation failed\n");
-                free(name); /* ADDED cleanup */
-                fclose(f2); /* ADDED file cleanup */
-                return NULL; /* CHANGED from exit(1) */
+
+            new_macro->name = (char*)malloc(strlen(macro_name) + 1);
+            if (new_macro->name == NULL) {
+                fprintf(stderr, "error, memory allocation failed\n");
+                error = 1;
+                free(new_macro);
+                continue;
             }
-            
-            /* Collect macro content until 'endmcro' */
-            while (fgets(row, sizeof(row), f1) != NULL) {
-                if (strstr(row, "endmcro") != NULL) {
+            strcpy(new_macro->name, macro_name);
+
+            new_macro->content = (char*)calloc(1, sizeof(char));
+            if (new_macro->content == NULL) {
+                fprintf(stderr, "error, memory allocation failed\n");
+                error = 1;
+                free(new_macro->name);
+                free(new_macro);
+                continue;
+            }
+
+            while (fgets(row, MAX_LEN_OF_ROW, f1) != NULL) {
+                strcpy(row_copy, row);
+                token = strtok(row_copy, " \t\r\n");
+
+                if (token != NULL && strcmp(token, "mcroend") == 0) {
+                    if (strtok(NULL, " \t\r\n") != NULL) {
+                        fprintf(stderr, "error, extra text after 'mcroend'\n");
+                        error = 1;
+                    }
                     break;
                 }
-                /* Check if content buffer has enough space - ADDED */
-                if (strlen(content) + strlen(row) >= MAX_CONTENT_SIZE - 1) {
-                    fprintf(stderr, "Error: macro content too large\n");
+
+                new_macro->content = (char*)realloc(new_macro->content,
+                    strlen(new_macro->content) + strlen(row) + 1);
+                if (new_macro->content == NULL) {
+                    fprintf(stderr, "error, memory allocation failed\n");
                     error = 1;
                     break;
                 }
-                strcat(content, row);
+                strcat(new_macro->content, row);
             }
-            
-            /* Add macro to macro array manually - FIXED */
-            /* Expand array if needed */
-            if (macro_count >= macro_capacity) {
-                macro_capacity = (macro_capacity == 0) ? 1 : macro_capacity * 2;
-                macros = (macro **)realloc(macros, macro_capacity * sizeof(macro *));
-                if (macros == NULL) {
-                    fprintf(stderr, "Memory allocation failed\n");
-                    free(name);
-                    free(content);
-                    fclose(f2);
-                    return NULL;
-                }
+
+            macros = (macro**)realloc(macros, (macro_count + 1) * sizeof(macro*));
+            if (macros == NULL) {
+                fprintf(stderr, "error, memory allocation failed\n");
+                error = 1;
+                continue;
             }
-            
-            /* Allocate memory for new macro */
-            macros[macro_count] = (macro *)malloc(sizeof(macro));
-            if (macros[macro_count] == NULL) {
-                fprintf(stderr, "Memory allocation failed\n");
-                free(name);
-                free(content);
-                fclose(f2);
-                return NULL;
-            }
-            
-            /* Set macro name and content */
-            macros[macro_count]->name = name;
-            macros[macro_count]->content = content;
+            macros[macro_count] = new_macro;
             macro_count++;
+            continue;
         }
-        else if (token != NULL) {
-            /* ADDED: Handle macro replacement */
-            /* Extract single word from line */
-            token1 = strtok(NULL, " \t\r\n");
-            if (token1 != NULL) {
-                error = 1; /* More than one word - mark error */
-                fprintf(f2, "%s", row); /* Write original line - ADDED */
-                continue;
-            }
-            
-            /* Check if token matches any macro name */
-            int found = 0;
-            for (i = 0; i < macro_count; i++) {
-                if (strcmp(token, macros[i]->name) == 0) {
-                    fprintf(f2, "%s", macros[i]->content); /* REMOVED \n - content already has newlines */
-                    found = 1;
-                    changes_made = 1; /* Mark that changes were made - ADDED */
+
+        if (token != NULL) {
+            for (j = 0; j < macro_count; j++) {
+                if (strcmp(token, macros[j]->name) == 0) {
+                    fprintf(f2, "%s", macros[j]->content);
+                    changes_made = 1;
+                    matched = 1;
                     break;
                 }
             }
-            
-            /* If no macro found, write original token */
-            if (!found) {
-                fprintf(f2, "%s\n", token);
-            }
         }
-        else {
-            /* Empty line or only whitespace - ADDED */
+
+        if (!matched) {
             fprintf(f2, "%s", row);
         }
     }
-    
-    /* Cleanup and return - ADDED */
-    for (i = 0; i < macro_count; i++) {
-        free(macros[i]->name);
-        free(macros[i]->content);
-        free(macros[i]);
+
+    for (j = 0; j < macro_count; j++) {
+        free(macros[j]->name);
+        free(macros[j]->content);
+        free(macros[j]);
     }
     free(macros);
-    
-    /* Return appropriate file based on whether changes were made - MODIFIED */
+
     if (changes_made) {
-        return f2; /* Return modified file */
+        return f2;
     } else {
-        fclose(f2); /* Close and don't return the output file */
-        return f1;  /* Return original file */
+        fclose(f2);
+        temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(END_FILE_NAME_AM) + 1);
+        if (temp_file_name != NULL) {
+            strcpy(temp_file_name, argv[i]);
+            strcat(temp_file_name, END_FILE_NAME_AM);
+            remove(temp_file_name);
+            free(temp_file_name);
+        }
+        return f1;
     }
 }
