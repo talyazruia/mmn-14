@@ -4,8 +4,5 @@
    mov  A,r1 
 . 
 . 
-a_mc:
-
-mov:
-
-labal: mov #2 #d #d
+   inc r2 
+   mov  A,r1 

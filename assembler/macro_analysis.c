@@ -1,7 +1,7 @@
 #include "assembler.h"
 
 
-FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i) {
+void macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i) {
     char row[MAX_LEN_OF_ROW+2];
     char row_copy[MAX_LEN_OF_ROW+2];
     char* token;
@@ -16,13 +16,14 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
     int is_command;
     int j;
     FILE* f2;
+	
 	f2= end_file_name_am(0, argv, i);
 
     if (f2 == NULL) {
 	fprintf(stderr, "Failed to create .am file for %s\n", argv[i]);
-        return f1;
+        
     }
-
+else{
     while (fgets(row, MAX_LEN_OF_ROW, f1) != NULL) {
         strcpy(row_copy, row);
         token = strtok(row_copy, " \t\r\n");
@@ -112,7 +113,7 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
             macro_count++;
             continue;
         }
-
+		
         if (token != NULL) {
             for (j = 0; j < macro_count; j++) {
                 if (strcmp(token, macros[j]->name) == 0) {
@@ -129,16 +130,22 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
         }
     }
 
-    for (j = 0; j < macro_count; j++) {
+    /*no relese here relse in row_analysys*/
+	/*for (j = 0; j < macro_count; j++) {
         free(macros[j]->name);
         free(macros[j]->content);
         free(macros[j]);
     }
-    free(macros);
+    free(macros);*/
 
-    if (changes_made) {
-        return f2;
-    } else {
+    if (changes_made&&error==0) {
+	fclose(f1);
+rewind(f2);
+row_analysis(f2, macro_count, macros, cmd, cmd1);
+
+	
+}
+     else {
         fclose(f2);
         temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(END_FILE_NAME_AM) + 1);
         if (temp_file_name != NULL) {
@@ -147,6 +154,10 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
             remove(temp_file_name);
             free(temp_file_name);
         }
-        return f1;
+       rewind(f1);
+row_analysis(f1, macro_count, macros, cmd, cmd1);
+
+
     }
+}
 }

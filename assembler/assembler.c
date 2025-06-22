@@ -6,33 +6,33 @@ int error =0;
 int main(int argc, char * argv[])
 {
 	command cmd[] = {
-		{"mov", 2, 0},
-		{"cmp", 2, 1},
-		{"add", 2, 2},
-		{"sub", 2, 3},
-		{"not", 1, 4},
-		{"clr", 1, 5},
-		{"lea", 2, 6},
-		{"inc", 1, 7},
-		{"dec", 1, 8},
-		{"jmp", 1, 9},
-		{"bne", 1, 10},
-		{"red", 1, 11},
-		{"prn", 1, 12},
-		{"jsr", 1, 13},
-		{"rts", 0, 14},
-		{"stop", 0, 15}
+		{"mov", 2, 0,mov},
+		{"cmp", 2, 1,cmp},
+		{"add", 2, 2,add},
+		{"sub", 2, 3,sub},
+		{"not", 1, 4,not_func},
+		{"clr", 1, 5,clr},
+		{"lea", 2, 6,lea},
+		{"inc", 1, 7,inc},
+		{"dec", 1, 8,dec},
+		{"jmp", 1, 9,jmp},
+		{"bne", 1, 10,bne},
+		{"red", 1, 11,red},
+		{"prn", 1, 12,prn},
+		{"jsr", 1, 13,jsr},
+		{"rts", 0, 14,rts},
+		{"stop", 0, 15,stop}
 				};
 
 	command1 cmd1[]={
-		{".data",1 },
-		{".string",1},
-		{".mat", 1},
-		{".entry", 1},
-		{".extern", 1}
+		{".data",1,data },
+		{".string",1,string},
+		{".mat", 1,mat},
+		{".entry", 1,entry},
+		{".extern", 1,extern_func}
 				};
-	FILE *f1;	
-	FILE *f2; /* מערך של מצביעים למחרוזות, מוקצה סטטית על ה־stack*/
+	FILE *f1;
+		
 	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
 	if(argc==1)
 	{
@@ -45,13 +45,13 @@ int main(int argc, char * argv[])
 		f1=end_file_name_as( argc, argv , i);
 		if(f1!=NULL)
 		{
-			f2=macro_analysis(f1,cmd, cmd1, argc, argv, i);
-			printf("Finished macro analysis on file %s\n", argv[i]);
+			macro_analysis(f1,cmd, cmd1, argc, argv, i);
+			/*printf("Finished macro analysis on file %s\n", argv[i]);
 			fclose(f1);
-			/*if(f2!=f1)
-			row_analysis(f2);*/
+			if(f2!=f1)
+			row_analysis(
 			if(f2!=NULL&& f2!=f1)
-				fclose(f2);
+				fclose(f2);*/
 		}
 		 else
         {

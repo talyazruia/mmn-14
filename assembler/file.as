@@ -7,4 +7,8 @@ mcroend
 a_mc 
 . 
 . 
-a_mc
+a_mc:
+
+mov:
+
+labal: mov #2 #d #d
