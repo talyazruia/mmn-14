@@ -1,6 +1,64 @@
 #include "assembler.h"
+int isHashNumber(char * str) {
+	if (str == NULL || str[0] != '#') return 0; 
+
+	str++; 
+
+	if (*str == '\0') return 0; 
+
+	while (*str) {
+		if (!isdigit((unsigned char)*str)) {
+			return 0; 
+		}
+		str++;
+	}
+
+	return 1;
+}
+int regisrer(char * str)
+{
+	if (str == NULL || str[0] != 'r') return 0;
+	str++;
+	if (*str == '\0') return 0;
+	while (*str) {
+		if (!isdigit((unsigned char)*str)) {
+			return 0;
+		}
+		str++;
+	}
+	return 1;
+}
+/*
+
 int add(char row[],SEMEL** SEMELS)
-{return 0;
+{
+	char* command;
+	char* op1;
+	char* op2;
+	int op1_val;
+	int op2_val;
+	int op1_type;
+	int op2_type;
+	command = strtok(row, " ");
+	op1 = strtok(NULL, ",");
+	op2 = strtok(NULL, " ");
+	if (op1 == NULL)
+	{
+		fprintf(stderr, "Error: Missing operand in command %s\n", command);
+		error = 1;
+		return 0;
+	}
+	if (op2 == NULL)
+	{
+		fprintf(stderr, "Error: Missing second operand in command %s\n", command);
+		error = 1;
+           return 0;
+	}
+	if (isHashNumber(op1)) {
+		op1_val = atoi(op1 + 1); 
+		op1_type = 0;
+	
+	return 0;
 }
 
 int mov(char row[],SEMEL** SEMELS)
@@ -85,3 +143,4 @@ int extern_func(char row[],SEMEL** SEMELS)
 {
 return 0;
 }
+}*/

@@ -1,6 +1,6 @@
 #include "assembler.h"
 
-int IC =0;
+int IC =100;
 int DC =0;
 int error =0;
 int main(int argc, char * argv[])
@@ -35,7 +35,7 @@ int main(int argc, char * argv[])
 	FILE *f_used;
     	macro** macros;
     	int macro_count;
-	func* instructions = NULL;
+	/*func* instructions = NULL;*/
 	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
 	if(argc==1)
 	{
@@ -53,8 +53,9 @@ int main(int argc, char * argv[])
             		macro_count = 0;
 			f_used =macro_analysis(f1,cmd, cmd1, argc, argv, i, &macros, &macro_count);
 			if (f_used != NULL) 
-			{
+			{;
     				row_analysis(f_used, macro_count, macros, cmd, cmd1);
+				rewind(f_used);
     				fclose(f_used);
 			} 			
 			else 

@@ -1,5 +1,5 @@
-assembler: assembler.o chang_file_name.o macro_analysis.o row_analysis.o command_analysis.o
-	gcc -ansi -pedantic -Wall chang_file_name.o  macro_analysis.o row_analysis.o command_analysis.o assembler.o -o assembler
+assembler: assembler.o chang_file_name.o macro_analysis.o row_analysis.o command_analysis.o IC_DC_counter.o
+	gcc -ansi -pedantic -Wall chang_file_name.o  macro_analysis.o row_analysis.o command_analysis.o assembler.o IC_DC_counter.o -o assembler
 
 assembler.o: assembler.c assembler.h
 	gcc -c -ansi -pedantic -Wall assembler.c -o assembler.o
@@ -15,3 +15,6 @@ row_analysis.o:row_analysis.c assembler.h
 
 command_analysis.o:command_analysis.c assembler.h
 	gcc -c -ansi -pedantic -Wall command_analysis.c -o command_analysis.o
+
+IC_DC_counter.o:IC_DC_counter.c assembler.h
+	gcc -c -ansi -pedantic -Wall IC_DC_counter.c -o IC_DC_counter.o

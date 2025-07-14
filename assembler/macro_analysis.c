@@ -1,29 +1,31 @@
 #include "assembler.h"
 
 
-void macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i) {
+FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out) {
     char row[MAX_LEN_OF_ROW+2];
     char row_copy[MAX_LEN_OF_ROW+2];
     char* token;
     char* macro_name;
     char* line_token;
-    char* temp_file_name;
     macro** macros = NULL;
     macro* new_macro;
     int macro_count = 0;
-    int changes_made = 0;
+    /*int changes_made = 0;*/
     int matched;
     int is_command;
     int j;
     FILE* f2;
+	char* temp_file_name;
 	
 	f2= end_file_name_am(0, argv, i);
 
     if (f2 == NULL) {
 	fprintf(stderr, "Failed to create .am file for %s\n", argv[i]);
+	fclose(f1);
+        return NULL;
         
     }
-else{
+/*else{*/
     while (fgets(row, MAX_LEN_OF_ROW, f1) != NULL) {
         strcpy(row_copy, row);
         token = strtok(row_copy, " \t\r\n");
@@ -118,7 +120,7 @@ else{
             for (j = 0; j < macro_count; j++) {
                 if (strcmp(token, macros[j]->name) == 0) {
                     fprintf(f2, "%s", macros[j]->content);
-                    changes_made = 1;
+                    /*changes_made = 1;*/
                     matched = 1;
                     break;
                 }
@@ -130,34 +132,39 @@ else{
         }
     }
 
-    /*no relese here relse in row_analysys*/
-	/*for (j = 0; j < macro_count; j++) {
-        free(macros[j]->name);
-        free(macros[j]->content);
-        free(macros[j]);
-    }
-    free(macros);*/
+    fclose(f1);
 
-    if (changes_made&&error==0) {
-	fclose(f1);
-rewind(f2);
-row_analysis(f2, macro_count, macros, cmd, cmd1);
-
-	
-}
-     else {
+    /*if (changes_made && error == 0) {
+        fclose(f1);
+        rewind(f2);
+        return f2;  
+    } else {
         fclose(f2);
-        temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(END_FILE_NAME_AM) + 1);
+        char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(END_FILE_NAME_AM) + 1);
         if (temp_file_name != NULL) {
             strcpy(temp_file_name, argv[i]);
             strcat(temp_file_name, END_FILE_NAME_AM);
             remove(temp_file_name);
             free(temp_file_name);
         }
-       rewind(f1);
-row_analysis(f1, macro_count, macros, cmd, cmd1);
-
-
+        rewind(f1);
+        return f1; 
+    }*/
+	if (error == 0) {
+    rewind(f2);
+    *macros_out = macros;
+    *macro_count_out = macro_count;
+    return f2;  
+} else {
+    fclose(f2);
+    temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(END_FILE_NAME_AM) + 1);
+    if (temp_file_name != NULL) {
+        strcpy(temp_file_name, argv[i]);
+        strcat(temp_file_name, END_FILE_NAME_AM);
+        remove(temp_file_name);  
+        free(temp_file_name);
     }
+    return NULL;  
+
 }
 }

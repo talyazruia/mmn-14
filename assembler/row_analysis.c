@@ -1,6 +1,7 @@
 #include "assembler.h"
 
 void clear_row_arry();
+
 SEMEL** add_SEMEL(char* label , int type ,int addres); 
 
 void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],command1 cmd1[])
@@ -19,6 +20,9 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 	int is_valid_func;
 	SEMEL** SEMELS;
 	int found_command;
+	char* cmd_2_arg[] = {"mov","cmp","add", "sub","lea"};
+	char * cmd_1_arg[]={"not","clr","inc","dec","jmp","bne","red","prn","jsr"};
+	char * cmd_0_arg[]={"rts","stop"};
 	
 
 	SEMELS=NULL;
@@ -40,7 +44,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 		{
 			continue;
 		}
-		valid_label=0;
+		valid_label=1;
 		is_valid_func=0;
         	
         	len = strlen(token);
@@ -54,46 +58,74 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
         		}
 			token[len-1]='\0';
 			strcpy(label,token);
-			for(i=0; i<strlen(label); i++)
+			if (!isalpha(label[0])) 
 			{
-				if(!isalpha(label[i]))
-				{
-					valid_label=1;
-					error=1;
-					fprintf(stderr, "error, label must contain only letters \n");
-					break;
-				} 
+				fprintf(stderr, "error, label must start with a letter: %s\n", label);
+				error = 1;
+				valid_label = 0;
 			}
-			if(valid_label==0)
+/* שאר התווים יכולים להיות אותיות או ספרות */
+			else 
 			{
-				 for (j = 0; j < macro_count; j++) {
-					if (strcmp(label, macros[j]->name) == 0) {
+				for(i = 1; i < strlen(label); i++) 
+				{
+					if (!isalnum(label[i])) 
+					{
+						fprintf(stderr, "error, label can contain only letters and digits: %s\n", label);
+						error = 1;
+						valid_label = 0;
+						break;
+					}
+				}
+			}
+			if(valid_label==1)
+			{
+				for (j = 0; j < macro_count; j++) 
+				{
+					if (strcmp(label, macros[j]->name) == 0) 
+					{
 						fprintf(stderr, "error, label cant be macro name: %s\n", label);
 						error=1;
-						valid_label=1;
+						valid_label=0;
             					break;
 					}
 				}
 			}
-			if(valid_label==0)
+			if(valid_label==1 && SEMELS != NULL)
+			{
+				for (j = 0; SEMELS[j] != NULL; j++) {
+					if (strcmp(label, SEMELS[j]->name) == 0) {
+						fprintf(stderr, "error, label already defined: %s\n", label);
+						error = 1;
+						valid_label = 0;
+						break;
+					}
+				}
+			}
+			if(valid_label==1)
 			{
 				for(i=0; i<16; i++)
 				{
 					if(strcmp(label, cmd[i].name)==0)
 					{
-						valid_label=1;
+						valid_label=0;
 						error=1;
 						fprintf(stderr,"error, label cannot be the name of a command: %s\n", label);
 						break;
 					}
 				}
 			}
-			if(valid_label==0)
+			if(valid_label==1)
 			{
 				
 				token=strtok(NULL, " \t\n\r");
 				if(token!=NULL)
 				{
+					if (strcmp(token, ".entry") == 0 || strcmp(token, ".extern") == 0) {
+						fprintf(stderr, "error, label cannot precede .entry or .extern: %s\n", label);
+						error = 1;
+						continue;
+					}
 					found_command=0;
 					type=0;
 					addres=IC;
@@ -126,22 +158,42 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				 		colon = strchr(row, ':');
 						if (colon != NULL) 
       							new_row = colon + 1;
-						for(i=0; i<16; i++)
+						for(i=0; i<5; i++)
 						{
-							if(strcmp(token, cmd[i].name)==0)
+							if(strcmp(token, cmd_2_arg[i])==0)
 							{
-								cmd[i].func(new_row,SEMELS);
+								ic_count_2_arg(new_row);
 								break;
 							}
 						}
-				 		for (j = 0; j < 5; j++) 
+				 		for (j = 0; j < 9; j++) 
 						{
 						
-							if (strcmp(token, cmd1[j].name) == 0) 
+							if (strcmp(token, cmd_1_arg[j]) == 0) 
 							{
-								cmd1[j].func(new_row,SEMELS);	
+								ic_count_1_arg(new_row);	
 								break;
 							}
+						}
+						for (j = 0; j < 2; j++) 
+						{
+							if (strcmp(token, cmd_0_arg[j]) == 0) 
+							{
+								IC++;
+								break;
+							}
+						}
+						if(strcmp(token, ".data") == 0) 
+						{
+							dc_count_data(new_row);
+						}
+						if(strcmp(token, ".string") == 0) 
+						{
+							dc_count_string(new_row);
+						}
+						if(strcmp(token, ".mat") == 0) 
+						{
+							dc_count_mat(new_row);
 						}
 					}
 				}
@@ -156,27 +208,48 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 		else {
 				found_command=0;
 				
-				for(i=0; i<16; i++)
+				for(i=0; i<5; i++)
 				{
-					if(strcmp(token, cmd[i].name)==0)
+					if(strcmp(token, cmd_2_arg[i])==0)
 					{
 						is_valid_func=1;
 						found_command=1;
-						cmd[i].func(row,SEMELS);
+						ic_count_2_arg(row);
 						break;
 					}
 				}
-				for (j = 0; j < 5; j++) 
+				for (j = 0; j < 9; j++) 
 				{
-					if (strcmp(token, cmd1[j].name) == 0) 
+					if (strcmp(token, cmd_1_arg[j]) == 0) 
 					{
 						is_valid_func=1;
 						found_command=1;
-						cmd1[j].func(row,SEMELS);
+						ic_count_1_arg(row);
 						break;
 					}
 				}
-				
+				for (j = 0; j < 2; j++) 
+				{
+					if (strcmp(token, cmd_0_arg[j]) == 0) 
+					{
+						is_valid_func=1;
+						found_command=1;
+						IC++;
+						break;
+					}
+				}
+				if(strcmp(token, ".data") == 0) 
+				{
+					dc_count_data(new_row);
+				}
+				if(strcmp(token, ".string") == 0) 
+				{
+					dc_count_string(new_row);
+				}
+				if(strcmp(token, ".mat") == 0) 
+				{
+					dc_count_mat(new_row);
+				}
 				if(is_valid_func==0)
 				{
 					fprintf(stderr,"error, func name is not valid\n");
@@ -191,14 +264,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
         free(macros[j]);
     }
     free(macros);
-
-	
 }
-
-		
-
-	
-
 
 void clear_row_arry() 
 {
@@ -246,6 +312,3 @@ SEMEL** add_SEMEL(char* label , int type ,int addres)
             semel_count++;
            return SEMELS;
 }
-
-
-
