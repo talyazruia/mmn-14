@@ -32,7 +32,10 @@ int main(int argc, char * argv[])
 		{".extern", 1,extern_func}
 				};
 	FILE *f1;
-		
+	FILE *f_used;
+    	macro** macros;
+    	int macro_count;
+	func* instructions = NULL;
 	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
 	if(argc==1)
 	{
@@ -42,21 +45,29 @@ int main(int argc, char * argv[])
 	}
 	for(;i<argc; i++)
 	{
+		error=0;
 		f1=end_file_name_as( argc, argv , i);
 		if(f1!=NULL)
 		{
-			macro_analysis(f1,cmd, cmd1, argc, argv, i);
-			/*printf("Finished macro analysis on file %s\n", argv[i]);
-			fclose(f1);
-			if(f2!=f1)
-			row_analysis(
-			if(f2!=NULL&& f2!=f1)
-				fclose(f2);*/
+			macros = NULL;
+            		macro_count = 0;
+			f_used =macro_analysis(f1,cmd, cmd1, argc, argv, i, &macros, &macro_count);
+			if (f_used != NULL) 
+			{
+    				row_analysis(f_used, macro_count, macros, cmd, cmd1);
+    				fclose(f_used);
+			} 			
+			else 
+			{
+    				printf("Error processing macros for %s\n", argv[i]);
+				continue;
+		
+			}
 		}
 		 else
-        {
-            printf("Could not open source file for %s\n", argv[i]);
-        }
+        	{
+            		printf("Could not open source file for %s\n", argv[i]);
+        	}
 	}
 return 0;
 }

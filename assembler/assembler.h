@@ -38,6 +38,11 @@ typedef struct {
 	char *content;
 }macro;
 
+typedef struct {
+	char first;
+	char second;
+}func;
+
 extern int error;
 
 int main(int argc, char * argv[]);
@@ -45,7 +50,7 @@ FILE *end_file_name_as(int argc, char * argv[],int i);
 void row_analysis(FILE * f, int macro_count,macro**macros, command cmd[], command1 cmd1[]);
 void clear_row_arry();
 FILE *end_file_name_am(int argc, char * argv[], int i); 
-void macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i);
+FILE * macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out);
 SEMEL** add_SEMEL(char *label , int type,int addres);
 int add(char row[],SEMEL** SEMELS);
 int mov(char row[],SEMEL** SEMELS);
@@ -68,5 +73,7 @@ int string(char row[],SEMEL** SEMELS);
 int mat(char row[],SEMEL** SEMELS);
 int entry(char row[],SEMEL** SEMELS);
 int extern_func(char row[],SEMEL** SEMELS);
+func* add_number(int num, func* array);
+func* add_two_numbers(int num1, int num2, func* array);  
 
 #endif
