@@ -52,7 +52,9 @@ void clear_row_arry();
 FILE *end_file_name_am(int argc, char * argv[], int i); 
 FILE * macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out);
 void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_count);
-int add(char row[],SEMEL** SEMELS);
+
+int add(char row[],SEMEL** SEMELS, int SEMEL_count, command cmd[], func* array);
+/*
 int mov(char row[],SEMEL** SEMELS);
 int cmp(char row[],SEMEL** SEMELS);
 int sub(char row[],SEMEL** SEMELS);
@@ -73,6 +75,7 @@ int string(char row[],SEMEL** SEMELS);
 int mat(char row[],SEMEL** SEMELS);
 int entry(char row[],SEMEL** SEMELS);
 int extern_func(char row[],SEMEL** SEMELS);
+*/
 func* add_number(int num, func* array);
 func* add_two_numbers(int num1, int num2, func* array); 
 void update_data_symbol_addresses(SEMEL** semels, int semel_count);
@@ -82,7 +85,10 @@ void ic_count_2_arg(char* row);
 void dc_count_data(char* row);
 void dc_count_string(char* row);
 void dc_count_mat(char* row);
-int regisrer(const char * str);
-int isHashNumber(const char * str);   
+int reg( char * str);
+int isHashNumber( char * str); 
+int* valid_matrix(char* str, SEMEL** SEMELS,int SEMEL_count);
+int valid_SEMEL(char* str, SEMEL** SEMELS, int SEMEL_count);
+void to_binary(int opcode, int op1, int op2);  
 
 #endif
