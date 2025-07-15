@@ -35,8 +35,11 @@ int main(int argc, char * argv[])
 	FILE *f_used;
     	macro** macros;
     	int macro_count;
-	/*func* instructions = NULL;*/
+	SEMEL** SEMELS = NULL;
+	int semel_count = 0;
 	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
+	int j=0;
+
 	if(argc==1)
 	{
 		fprintf(stderr,"error, ther no input files.\n");
@@ -54,7 +57,8 @@ int main(int argc, char * argv[])
 			f_used =macro_analysis(f1,cmd, cmd1, argc, argv, i, &macros, &macro_count);
 			if (f_used != NULL) 
 			{;
-    				row_analysis(f_used, macro_count, macros, cmd, cmd1);
+    				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
+				update_data_symbol_addresses( SEMELS, semel_count); 
 				rewind(f_used);
     				fclose(f_used);
 			} 			
@@ -70,5 +74,13 @@ int main(int argc, char * argv[])
             		printf("Could not open source file for %s\n", argv[i]);
         	}
 	}
+	for (j = 0; j < semel_count; j++) {
+        if (SEMELS[j]) {
+            free(SEMELS[j]->name);
+            free(SEMELS[j]);
+        }
+    }
+    free(SEMELS);
 return 0;
 }
+

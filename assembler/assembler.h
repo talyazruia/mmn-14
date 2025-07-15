@@ -47,11 +47,11 @@ extern int error;
 
 int main(int argc, char * argv[]);
 FILE *end_file_name_as(int argc, char * argv[],int i);
-void row_analysis(FILE * f, int macro_count,macro**macros, command cmd[], command1 cmd1[]);
+void row_analysis(FILE *f, int macro_count, macro **macros, command cmd[], command1 cmd1[], SEMEL ***SEMELS, int *semel_count);
 void clear_row_arry();
 FILE *end_file_name_am(int argc, char * argv[], int i); 
-FILE* macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out);
-SEMEL** add_SEMEL(char *label , int type,int addres);
+FILE * macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out);
+void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_count);
 int add(char row[],SEMEL** SEMELS);
 int mov(char row[],SEMEL** SEMELS);
 int cmp(char row[],SEMEL** SEMELS);
@@ -74,13 +74,15 @@ int mat(char row[],SEMEL** SEMELS);
 int entry(char row[],SEMEL** SEMELS);
 int extern_func(char row[],SEMEL** SEMELS);
 func* add_number(int num, func* array);
-func* add_two_numbers(int num1, int num2, func* array);  
+func* add_two_numbers(int num1, int num2, func* array); 
+void update_data_symbol_addresses(SEMEL** semels, int semel_count);
 int has_two_square_bracket_pairs(const char* str);
 void ic_count_1_arg(char* row);
 void ic_count_2_arg(char* row);
 void dc_count_data(char* row);
 void dc_count_string(char* row);
 void dc_count_mat(char* row);
-int isHashNumber(char* str);
-int regisrer(char* str);
+int regisrer(const char * str);
+int isHashNumber(const char * str);   
+
 #endif

@@ -1,4 +1,4 @@
-#include "assembly.h"
+#include "assembler.h"
 
 func* add_number(int num, func* array) 
 {
@@ -40,4 +40,15 @@ func* add_two_numbers(int num1, int num2, func* array)
     	IC++;
 
     	return temp;
+}
+void update_data_symbol_addresses(SEMEL** semels, int semel_count) 
+{
+	int i;
+    	for (i = 0; i < semel_count; i++) 
+	{
+        	if (semels[i]->type == 1) 
+		{
+            		semels[i]->addres += IC;
+        	}
+    	}
 }

@@ -1,12 +1,13 @@
 #include "assembler.h"
 
 void clear_row_arry();
+void add_SEMEL(char* label , int type ,int addres, SEMEL*** semels, int* semel_count); 
 
-SEMEL** add_SEMEL(char* label , int type ,int addres); 
-
-void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],command1 cmd1[])
+void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],command1 cmd1[],SEMEL*** SEMELS, int* semel_count)
 {
 	char row[MAX_LEN_OF_ROW+2];
+	char row_copy[MAX_LEN_OF_ROW+2];
+	char new_row_copy[MAX_LEN_OF_ROW + 2];
 	char label[31];
 	char *token;
 	size_t len;
@@ -17,15 +18,13 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 	int addres;
 	char *new_row;
 	 char *colon;
-	int is_valid_func;
-	SEMEL** SEMELS;
+	/*int is_valid_func;*/
 	int found_command;
 	char* cmd_2_arg[] = {"mov","cmp","add", "sub","lea"};
 	char * cmd_1_arg[]={"not","clr","inc","dec","jmp","bne","red","prn","jsr"};
 	char * cmd_0_arg[]={"rts","stop"};
 	
 
-	SEMELS=NULL;
 	while (fgets(row, sizeof(row), f))
 	{
 		if (strchr(row, '\n') == NULL) 
@@ -39,13 +38,14 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 		{
 			continue;
 		}
-		token=strtok(row, " \t\n\r");
+		strcpy(row_copy, row);
+        	token = strtok(row_copy, " \t\n\r");
 		if(token == NULL)
 		{
 			continue;
 		}
 		valid_label=1;
-		is_valid_func=0;
+		/*is_valid_func=0;*/
         	
         	len = strlen(token);
         	if (len > 0 && token[len - 1] == ':')
@@ -91,10 +91,10 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					}
 				}
 			}
-			if(valid_label==1 && SEMELS != NULL)
+			if(valid_label==1 && SEMELS != NULL && *SEMELS != NULL)
 			{
-				for (j = 0; SEMELS[j] != NULL; j++) {
-					if (strcmp(label, SEMELS[j]->name) == 0) {
+				for (j = 0; j<*semel_count; j++) {
+					if (strcmp(label, (*SEMELS)[j]->name) == 0) {
 						fprintf(stderr, "error, label already defined: %s\n", label);
 						error = 1;
 						valid_label = 0;
@@ -117,7 +117,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 			}
 			if(valid_label==1)
 			{
-				
 				token=strtok(NULL, " \t\n\r");
 				if(token!=NULL)
 				{
@@ -149,20 +148,22 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							break;	
 						}
 					}
-					if(found_command)
-					{
-					SEMELS=add_SEMEL(label,type,addres);
-
+					if(found_command){
+						add_SEMEL(label,type,addres, SEMELS, semel_count);
 					if(SEMELS!=NULL)
 					{
 				 		colon = strchr(row, ':');
 						if (colon != NULL) 
       							new_row = colon + 1;
+						else
+							new_row=row;
 						for(i=0; i<5; i++)
 						{
 							if(strcmp(token, cmd_2_arg[i])==0)
 							{
-								ic_count_2_arg(new_row);
+								strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
+								ic_count_2_arg(new_row_copy);
 								break;
 							}
 						}
@@ -171,7 +172,10 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 						
 							if (strcmp(token, cmd_1_arg[j]) == 0) 
 							{
-								ic_count_1_arg(new_row);	
+								/*ic_count_1_arg(new_row);*/
+								strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
+								ic_count_1_arg(new_row_copy);	
 								break;
 							}
 						}
@@ -185,15 +189,22 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 						}
 						if(strcmp(token, ".data") == 0) 
 						{
-							dc_count_data(new_row);
+							/*dc_count_data(new_row);*/
+							strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+							new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
+							dc_count_data(new_row_copy);
 						}
 						if(strcmp(token, ".string") == 0) 
 						{
-							dc_count_string(new_row);
+							strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+							new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
+							dc_count_string(new_row_copy);
 						}
 						if(strcmp(token, ".mat") == 0) 
 						{
-							dc_count_mat(new_row);
+							strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+							new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
+							dc_count_mat(new_row_copy);
 						}
 					}
 				}
@@ -212,45 +223,52 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				{
 					if(strcmp(token, cmd_2_arg[i])==0)
 					{
-						is_valid_func=1;
+						/*is_valid_func=1;*/
 						found_command=1;
 						ic_count_2_arg(row);
 						break;
 					}
 				}
+				if(!found_command) {
 				for (j = 0; j < 9; j++) 
 				{
 					if (strcmp(token, cmd_1_arg[j]) == 0) 
 					{
-						is_valid_func=1;
+						/*is_valid_func=1;*/
 						found_command=1;
 						ic_count_1_arg(row);
 						break;
 					}
 				}
+				}
+				if(!found_command) {
 				for (j = 0; j < 2; j++) 
 				{
 					if (strcmp(token, cmd_0_arg[j]) == 0) 
 					{
-						is_valid_func=1;
+						/*is_valid_func=1;*/
 						found_command=1;
 						IC++;
 						break;
 					}
 				}
+				}
 				if(strcmp(token, ".data") == 0) 
 				{
-					dc_count_data(new_row);
+					dc_count_data(row);
+					found_command = 1;
 				}
 				if(strcmp(token, ".string") == 0) 
 				{
-					dc_count_string(new_row);
+					dc_count_string(row);
+					found_command = 1;
 				}
 				if(strcmp(token, ".mat") == 0) 
 				{
-					dc_count_mat(new_row);
+					dc_count_mat(row);
+					found_command = 1;
 				}
-				if(is_valid_func==0)
+				if(!found_command)
 				{
 					fprintf(stderr,"error, func name is not valid\n");
 					error=1;
@@ -259,9 +277,12 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 		}
  
 	for (j = 0; j < macro_count; j++) {
+	if(macros[j])
+	{
         free(macros[j]->name);
         free(macros[j]->content);
         free(macros[j]);
+	}
     }
     free(macros);
 }
@@ -273,18 +294,17 @@ void clear_row_arry()
 }
 
 
-SEMEL** add_SEMEL(char* label , int type ,int addres)
+void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_count)
 {
 	
-	static SEMEL** SEMELS=NULL;
-	SEMEL * new_SEMEL;
-	static int semel_count=0;
+	SEMEL* new_SEMEL;
+	SEMEL** temp;
 
 	new_SEMEL = (SEMEL*)malloc(sizeof(SEMEL));
 		if (new_SEMEL == NULL) {
                 fprintf(stderr, "error, memory allocation failed\n");
                 error = 1;
-		return NULL;
+		return;
 		}
 
             new_SEMEL->name = (char*)malloc(strlen(label) + 1);
@@ -292,7 +312,7 @@ SEMEL** add_SEMEL(char* label , int type ,int addres)
                 fprintf(stderr, "error, memory allocation failed\n");
                 error = 1;
                 free(new_SEMEL);
-		return NULL;
+		return;
 		}
             strcpy(new_SEMEL->name, label);
 
@@ -301,14 +321,16 @@ SEMEL** add_SEMEL(char* label , int type ,int addres)
 		new_SEMEL->addres = addres;
 		new_SEMEL->ex = 0; 
 
-           SEMELS = (SEMEL**)realloc(SEMELS, (semel_count + 1) * sizeof(SEMEL*));
-            if (SEMELS == NULL) {
-                fprintf(stderr, "error, memory allocation failed\n");
-                error = 1;
-		return NULL;
-                
-            }
-            SEMELS[semel_count] = new_SEMEL;
-            semel_count++;
-           return SEMELS;
+		temp = realloc(*semels, (*semel_count + 1) * sizeof(SEMEL*));
+		if (!temp) 
+		{
+    			fprintf(stderr, "error, memory allocation failed\n");
+    			error = 1;
+			free(new_SEMEL->name);
+        		free(new_SEMEL);
+    			return;
+		}
+		*semels = temp;
+            	(*semels)[*semel_count] = new_SEMEL;
+    		(*semel_count)++;
 }
