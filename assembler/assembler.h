@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <limits.h>
 
 #define END_FILE_NAME_AS ".as"
 #define END_FILE_NAME_AM ".am"
@@ -21,7 +22,6 @@ typedef struct {
 	char *name;
 	int param;
 	int op;
-	int(*func)(char row[],SEMEL** SEMELS);
 }command;
 
 typedef struct {
@@ -41,7 +41,7 @@ typedef struct {
 typedef struct {
 	char first;
 	char second;
-}func;
+}binary_code;
 
 extern int error;
 
@@ -53,8 +53,8 @@ FILE *end_file_name_am(int argc, char * argv[], int i);
 FILE * macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out);
 void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_count);
 
-int add(char row[],SEMEL** SEMELS, int SEMEL_count, command cmd[], func* array);
-/*
+int add(char row[],SEMEL** SEMELS, int SEMEL_count, command cmd[], binary_code* array);
+
 int mov(char row[],SEMEL** SEMELS);
 int cmp(char row[],SEMEL** SEMELS);
 int sub(char row[],SEMEL** SEMELS);
@@ -75,11 +75,11 @@ int string(char row[],SEMEL** SEMELS);
 int mat(char row[],SEMEL** SEMELS);
 int entry(char row[],SEMEL** SEMELS);
 int extern_func(char row[],SEMEL** SEMELS);
-*/
-func* add_number(int num, func* array);
-func* add_two_numbers(int num1, int num2, func* array); 
+
+void add_number(int num, binary_code* array);
+void add_two_numbers(int num1, int num2, binary_code* array); 
 void update_data_symbol_addresses(SEMEL** semels, int semel_count);
-int has_two_square_bracket_pairs(const char* str);
+int has_two_square_bracket_pairs( char* str);
 void ic_count_1_arg(char* row);
 void ic_count_2_arg(char* row);
 void dc_count_data(char* row);
@@ -89,6 +89,8 @@ int reg( char * str);
 int isHashNumber( char * str); 
 int* valid_matrix(char* str, SEMEL** SEMELS,int SEMEL_count);
 int valid_SEMEL(char* str, SEMEL** SEMELS, int SEMEL_count);
-void to_binary(int opcode, int op1, int op2);  
+void to_binary(int opcode, int op1, int op2,binary_code* array);  
+/*void is_valid_operands_line_with_errors(char *line);*/
+void fix_commas_in_place(char *line);
 
 #endif

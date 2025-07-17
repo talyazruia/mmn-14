@@ -6,22 +6,22 @@ int error =0;
 int main(int argc, char * argv[])
 {
 	command cmd[] = {
-		{"mov", 2, 0,mov},
-		{"cmp", 2, 1,cmp},
-		{"add", 2, 2,add},
-		{"sub", 2, 3,sub},
-		{"not", 1, 4,not_func},
-		{"clr", 1, 5,clr},
-		{"lea", 2, 6,lea},
-		{"inc", 1, 7,inc},
-		{"dec", 1, 8,dec},
-		{"jmp", 1, 9,jmp},
-		{"bne", 1, 10,bne},
-		{"red", 1, 11,red},
-		{"prn", 1, 12,prn},
-		{"jsr", 1, 13,jsr},
-		{"rts", 0, 14,rts},
-		{"stop", 0, 15,stop}
+		{"mov", 2, 0},
+		{"cmp", 2, 1},
+		{"add", 2, 2},
+		{"sub", 2, 3},
+		{"not", 1, 4},
+		{"clr", 1, 5},
+		{"lea", 2, 6},
+		{"inc", 1, 7},
+		{"dec", 1, 8},
+		{"jmp", 1, 9},
+		{"bne", 1, 10},
+		{"red", 1, 11},
+		{"prn", 1, 12},
+		{"jsr", 1, 13},
+		{"rts", 0, 14},
+		{"stop", 0, 15}
 				};
 
 	command1 cmd1[]={
@@ -37,6 +37,8 @@ int main(int argc, char * argv[])
     	int macro_count;
 	SEMEL** SEMELS = NULL;
 	int semel_count = 0;
+	binary_code * array=NULL;
+char* row="mov #5 r15";
 	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
 	int j=0;
 
@@ -56,10 +58,12 @@ int main(int argc, char * argv[])
             		macro_count = 0;
 			f_used =macro_analysis(f1,cmd, cmd1, argc, argv, i, &macros, &macro_count);
 			if (f_used != NULL) 
-			{;
+			{
     				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
 				update_data_symbol_addresses( SEMELS, semel_count); 
+				fprintf(stderr,"%d %d", IC, DC);
 				rewind(f_used);
+				add(row,SEMELS, semel_count,  cmd,  array);
     				fclose(f_used);
 			} 			
 			else 
@@ -78,9 +82,9 @@ int main(int argc, char * argv[])
         if (SEMELS[j]) {
             free(SEMELS[j]->name);
             free(SEMELS[j]);
-        }
-    }
-    free(SEMELS);
+     	   }
+  	  }
+   free(SEMELS);
 return 0;
 }
 
