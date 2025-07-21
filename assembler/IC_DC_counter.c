@@ -27,8 +27,8 @@ void ic_count_1_arg(char* row)
 {
 	char* command;
     	char* op1;
-    	command = strtok(row, " ");
-    	op1 = strtok(NULL, " ");
+    	command = strtok(row, " \t");
+    	op1 = strtok(NULL, " \t\n\r");
     	if (op1 == NULL) 
 	{
         	error = 1;
@@ -52,9 +52,9 @@ void ic_count_2_arg(char* row)
 
     int ic_extra = 0;
 
-    command = strtok(row, " ");
+    command = strtok(row, " \t");
     op1 = strtok(NULL, ",");
-    op2 = strtok(NULL, ",");
+    op2 = strtok(NULL, ",\n\r");
 
     if (op1 == NULL || op2 == NULL) 
     {
@@ -63,6 +63,10 @@ void ic_count_2_arg(char* row)
         IC += 1;
         return;
     }
+	
+   /* הסרת רווחים מיותרים*/
+    while (*op1 == ' ' || *op1 == '\t') op1++;
+    while (*op2 == ' ' || *op2 == '\t') op2++;
 
     IC += 1;  /* עבור הפקודה עצמה (opcode + addressing modes) */
 
@@ -120,46 +124,125 @@ void dc_count_data(char* row)
 	fix_commas_in_place(row);
     	char* command;
     	char* op1;
-    	command = strtok(row, " ");
-    	op1 = strtok(NULL, ",");
+    	command = strtok(row, " \t");
+    	op1 = strtok(NULL, ",\n\r");
     	while (op1 != NULL) 
 	{
-        	DC++;
+		while (*op1 == ' ' || *op1 == '\t') op1++;/*הסרת רווחים מיותרים */
+		if(*op1!='\0')
+        		DC++;
         	op1 = strtok(NULL, " ,");
     	}
 }
 
 void dc_count_string(char* row) 
 {
-     	char* command;
-     	char* op1;
-    	command = strtok(row, " ");
-    	op1 = strtok(NULL, " ");
-    	DC += strlen(op1) + 1;
+     	 char* command;
+    	char* op1;
+    	char* start_string;
+    	char* end_string;
+    
+    	command = strtok(row, " \t");
+	if(command==NULL)
+		return;
+    	op1 = strtok(NULL, "\n\r");  /* כל השאר של השורה*/
+    
+    	if (op1 == NULL) return;
+    
+   /* הסרת רווחים מיותרים*/
+    	while (*op1 == ' ' || *op1 == '\t') op1++;
+    
+  /* מציאת המחרוזת בין הגרשיים*/
+    	start_string = strchr(op1, '"');
+    	if (start_string != NULL) 
+    	{
+        	end_string = strchr(start_string + 1, '"');
+        	if (end_string != NULL) 
+        	{
+            		DC += (end_string - start_string - 1) + 1;  /* אורך המחרוזת + '\0'*/
+        	}
+    	}
 }
+
 
 void dc_count_mat(char* row) 
 {
-	char row1;
+	char rows;
 	char col;
-    	char* command;
-    	command = strchr(row, ']');
-	row1=*(command - 1);
-    	command = strchr(command + 1, ']');
-	col = *(command - 1);
+    	char* token1;
+	char* token2;
+	int i=0;
+	char row_str[225];
+	char col_str[225];
+	char* data;
+	int data_count=0;
 
-    	command++;
-    	command = strtok(command, ",");
-	if(command==NULL)
+	token1 = strchr(row, '[');
+	if(token1==NULL) 
+		return;
+    	token2 = strchr(token1, ']');
+	if(token2==NULL) 
+		return;
+	token1++;
+	while(token1<token2 && *token1>= '0' && *token1 <= '9')
 	{
-		DC+=(int)row1*(int)col;
+		row_str[i++]= *token1;
+		token1++;
 	}
-	else{
-    	while (command != NULL) 
+	row_str[i]='\0';
+	rows= atoi(row_str);
+	token1 = strchr(token2, '[');
+	if(token1==NULL) 
+		return;
+	token2 = strchr(token1, ']');
+	if(token2==NULL) 
+		return;
+	i=0;
+	token1++;
+	while(token1<token2 && *token1>= '0' && *token1 <= '9')
 	{
-        	DC++;
-        	command = strtok(NULL, " ,");
-    	}
+		col_str[i++]= *token1;
+		token1++;
 	}
+	col_str[i]='\0';
+	col= atoi(row_str);
+	data=token2+1;
+	/*while(*data == ' ' || *data == '\t')
+		data++;
+	if(*data == '\0' || *data == '\n')
+	{
+		DC+=rows*col;
+	}
+	else
+	{
+    		while(*data !='\0' && *data != '\n')
+		{
+			while(*data ==' ' || *data == '\t')
+				data++;
+			if(*data== '\0' || *data == '\n')
+				break;*/
+	data = strtok(data, " , ");
+	if(data==NULL)
+	{
+		DC+=col*rows;
+	}
+	else
+	{
+		while(data!=NULL)
+		{
+			data = strtok(NULL, " , ");
+			DC++;
+		}
+	}	
 }
+
+
+
+
+
+
+
+
+
+
 

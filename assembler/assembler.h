@@ -42,8 +42,23 @@ typedef struct {
 	char first;
 	char second;
 }binary_code;
+typedef struct {
+	char first;
+	char second;
+}binary_directive;
+typedef struct {
+	char * name;
+	int addres
+}entery;
+typedef struct {
+	char * name;
+	int addres
+}extern_;
+
+
 
 extern int error;
+extern int size_of_binary_struct;
 
 int main(int argc, char * argv[]);
 FILE *end_file_name_as(int argc, char * argv[],int i);
@@ -55,26 +70,12 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_co
 
 int add(char row[],SEMEL** SEMELS, int SEMEL_count, command cmd[], binary_code* array);
 
-int mov(char row[],SEMEL** SEMELS);
-int cmp(char row[],SEMEL** SEMELS);
-int sub(char row[],SEMEL** SEMELS);
-int not_func(char row[],SEMEL** SEMELS);
-int clr(char row[],SEMEL** SEMELS);
-int lea(char row[],SEMEL** SEMELS);
-int inc(char row[],SEMEL** SEMELS);
-int dec(char row[],SEMEL** SEMELS);
-int jmp(char row[],SEMEL** SEMELS);
-int bne(char row[],SEMEL** SEMELS);
-int red(char row[],SEMEL** SEMELS);
-int prn(char row[],SEMEL** SEMELS);
-int jsr(char row[],SEMEL** SEMELS);
-int rts(char row[],SEMEL** SEMELS);
-int stop(char row[],SEMEL** SEMELS);
-int data(char row[],SEMEL** SEMELS);
-int string(char row[],SEMEL** SEMELS);
-int mat(char row[],SEMEL** SEMELS);
-int entry(char row[],SEMEL** SEMELS);
-int extern_func(char row[],SEMEL** SEMELS);
+
+void data(char row[],binary_directive **struct_DC);
+void string(char row[],binary_directive **struct_DC);
+void mat(char row[],binary_directive **struct_DC);
+void entry(char row[],SEMEL** SEMELS, int semel_count,entery **enterys);
+void extern_func(char row[],SEMEL** SEMELS,int semel_count,extern_ **ex);
 
 void add_number(int num, binary_code* array);
 void add_two_numbers(int num1, int num2, binary_code* array); 
@@ -90,7 +91,6 @@ int isHashNumber( char * str);
 int* valid_matrix(char* str, SEMEL** SEMELS,int SEMEL_count);
 int valid_SEMEL(char* str, SEMEL** SEMELS, int SEMEL_count);
 void to_binary(int opcode, int op1, int op2,binary_code* array);  
-/*void is_valid_operands_line_with_errors(char *line);*/
 void fix_commas_in_place(char *line);
 
 #endif

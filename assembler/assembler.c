@@ -3,6 +3,7 @@
 int IC =100;
 int DC =0;
 int error =0;
+int size_of_binary_struct=0;
 int main(int argc, char * argv[])
 {
 	command cmd[] = {
@@ -36,9 +37,12 @@ int main(int argc, char * argv[])
     	macro** macros;
     	int macro_count;
 	SEMEL** SEMELS = NULL;
+	entery** enterys=NULL;/*במעבר השני לשלוח לrow analysis */
+	extern_** ex=NULL;/*במעבר השני לשלוח לrow analysis */
 	int semel_count = 0;
 	binary_code * array=NULL;
-char* row="mov #5 r15";
+	binary_directive **struct_DC=NULL;
+	char* row="mov #5 r15";
 	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
 	int j=0;
 

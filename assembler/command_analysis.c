@@ -9,16 +9,16 @@ int is_valid_integer(const char *str, int *value) {
     /* דילוג על רווחים בתחילה */
     while (isspace((unsigned char)*str)) str++;
 
-    val = strtol(str, &endptr, 10); // המרה לבסיס 10
+    val = strtol(str, &endptr, 10); 
 
-    if (str == endptr) return 0; // לא התחיל במספר
+    if (str == endptr) return 0; 
 
     /* דילוג על רווחים אחרי המספר */
     while (isspace((unsigned char)*endptr)) endptr++;
 
-    if (*endptr != '\0') return 0; // יש תווים נוספים – לא תקני
+    if (*endptr != '\0') return 0; 
 
-    if (val < INT_MIN || val > INT_MAX) return 0; // חורג מטווח int
+    if (val < INT_MIN || val > INT_MAX) return 0; 
 
     *value = (int)val;
     return 1;
@@ -29,13 +29,13 @@ void to_binary(int opcode, int op1, int op2,binary_code* array) {
     (void)op1;
     (void)op2;
 	binary_code* temp;
-	int size=1;
-if(array=NULL)
+	
+if(array==NULL)
 {
     array = ((binary_code*)malloc(sizeof(binary_code)));
     if (array == NULL) {
         fprintf(stderr, "Error: malloc failed.\n");
-        return 1;
+        return ;
     }
 }
 else{
@@ -46,10 +46,11 @@ else{
     if (temp == NULL) {
         fprintf(stderr, "Error: realloc failed.\n");
         free(array);
-        return 1;
+        return ;
     }
     array = temp;
 	size++;
+}
 }
 
     /* הוספת איבר נוסף */
@@ -59,7 +60,7 @@ else{
    
     /* ניקוי זיכרון */
     /*free(array);*/
-    return 0;
+    return ;
 }
 
 
@@ -98,7 +99,7 @@ int* valid_matrix(char* str, SEMEL** SEMELS,int semel_count)
 	char r1[31];
 	char r2[31];
 	int i = 0;
-	int*result = NULL;
+	int *result = NULL;
 
 	if (sscanf(str, "%30[^[][%30[^]]][%30[^]]]", array_name, r1, r2) == 3) {
 		while (i < semel_count)
@@ -112,7 +113,7 @@ int* valid_matrix(char* str, SEMEL** SEMELS,int semel_count)
 				        result[2] = r2[1];
 						return result;
 						break;
-					}
+					}/*
 					else
 						fprintf(stderr, "Invalid format for matrix access.\n");
 				}
@@ -127,7 +128,7 @@ int* valid_matrix(char* str, SEMEL** SEMELS,int semel_count)
 	}
 	else {
 		fprintf(stderr,"Invalid format for matrix access.\n");
-	}
+	}*/
 
 	return NULL;
 }
@@ -163,7 +164,19 @@ int add(char row[],SEMEL** SEMELS, int semel_count, command cmd[], binary_code* 
 	int flag2;
 	command = strtok(row, " ");/*כאן להוסיף משתנה שיכיל את ה opcode*/
 	op1 = strtok(NULL, ",");
+	if (op1 == NULL)
+	{
+		fprintf(stderr, "Error: Missing operand in command %s\n", command);
+		error = 1;
+		return 0;
+	}
 	op2 = strtok(NULL, " ");
+	if (op2 == NULL)
+	{
+		fprintf(stderr, "Error: Missing second operand in command %s\n", command);
+		error = 1;
+           return 0;
+	}
 	op3 = strtok(NULL, " ");
 	if(op3!=NULL)
 	{
@@ -177,17 +190,6 @@ int add(char row[],SEMEL** SEMELS, int semel_count, command cmd[], binary_code* 
 		i++;
 	}
 
-	if (op1 == NULL)
-	{
-		fprintf(stderr, "Error: Missing operand in command %s\n", command);
-		error = 1;
-		return 0;
-	}
-	if (op2 == NULL)
-	{
-		fprintf(stderr, "Error: Missing second operand in command %s\n", command);
-		error = 1;
-           return 0;
 	
 	if (opcode>=0&&opcode<=3&&isHashNumber(op1)) {
 		op1_val = atoi(op1 + 1); 
@@ -250,6 +252,7 @@ int add(char row[],SEMEL** SEMELS, int semel_count, command cmd[], binary_code* 
 
 	}
 	to_binary(opcode, op1_type, op2_type, array);
+	size++;
 	if (flag1 + flag2 == 1)
 	{
 			add_two_numbers(op1_val,op2_val, array);
@@ -258,6 +261,7 @@ int add(char row[],SEMEL** SEMELS, int semel_count, command cmd[], binary_code* 
 		{
 			add_number(SEMELS[op1_mat[0]]->addres, array);
 			add_two_numbers(op1_mat[1],op1_mat[2] ,array);
+
 		}
 		else
 			add_number(op1_val, array);
@@ -274,80 +278,7 @@ int add(char row[],SEMEL** SEMELS, int semel_count, command cmd[], binary_code* 
 return 0;
 }
 
-
-
-
-
-	
-
-
-	
-
-int mov(char row[],SEMEL** SEMELS)
-{
-fprintf(stderr,"hhhhhh\n");
-return 0;
-}
-
-int cmp(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int sub(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int not_func(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int clr(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int lea(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int inc(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int dec(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int jmp(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int bne(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int red(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int prn(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int jsr(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int rts(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int stop(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int data(char row[],SEMEL** SEMELS)
-{
-void data(char row[], binary_code* array) {
+void data(char row[],binary_directive** struct_DC) {
     char* command;
     char* op1;
     command = strtok(row, " ");
@@ -363,7 +294,7 @@ void data(char row[], binary_code* array) {
         int val;
 
         if (is_valid_integer(op1, &val)) {
-            add_number(val, array);
+            add_number(val, struct_DC);
         } else {
             fprintf(stderr, "Error: Invalid operand: '%s'\n", op1);
             error = 1;
@@ -373,22 +304,233 @@ void data(char row[], binary_code* array) {
     }
 }
 
-return 0;
+
 }
 
-int string(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int mat(char row[],SEMEL** SEMELS)
-{return 0;
-}
-
-int entry(char row[],SEMEL** SEMELS)
-{ return 0;
-}
-
-int extern_func(char row[],SEMEL** SEMELS)
+void string(char row[],binary_directive** struct_DC)
 {
-return 0;
+	char *start_quote, *end_quote;
+	int i;
+
+	/* locate the first quote */
+	start_quote = strchr(row, '"');
+	if (start_quote == NULL) {
+		fprintf(stderr, "Missing opening quote for string\n");
+		error = 1;
+		
+	}
+
+	/* locate the ending quote */
+	end_quote = strchr(start_quote + 1, '"');
+	if (end_quote == NULL) {
+		fprintf(stderr, "Missing closing quote for string\n");
+		error = 1;
+		
+	}
+
+	if(end_quote != NULL&&start_quote != NULL)/* validate and send each character between the quotes */
+	for (i = 1; start_quote + i < end_quote; i++) {
+		char c = start_quote[i];
+		add_number((int)c,struct_DC);
+	}
+
+	/* add null terminator */
+	add_number(0,struct_DC);
+}
+
+
+void mat(char row[], binary_directive** struct_DC)
+{
+	char  *open1, *close1, *open2, *close2, *after_brackets;
+	int row_val, col_val;
+	char temp[31];
+	char *token;
+	int rights = 1;
+	fix_commas_in_place(row);
+	open1 = strchr(row, '[');
+	if (!open1) {
+		/* missing first '[' */
+		fprintf(stderr, "Missing first '['\n");
+		error = 1;
+	}
+	close1 = strchr(open1, ']');
+	if (!close1 || close1 < open1) {
+		/* missing first ']' */
+		fprintf(stderr, "Missing first ']'\n");
+		error = 1;
+	}
+
+	open2 = strchr(close1, '[');
+	if (!open2) {
+		/* missing second '[' */
+		fprintf(stderr, "Missing second '['\n");
+		error = 1;
+	}
+	close2 = strchr(open2, ']');
+	if (!close2 || close2 < open2) {
+		/* missing second ']' */
+		fprintf(stderr, "Missing second ']'\n");
+		error = 1;
+	}
+
+	/* extract the value between the first brackets */
+	strncpy(temp, open1 + 1, close1 - open1 - 1);
+	temp[close1 - open1 - 1] = '\0';
+	if (!is_valid_number(temp)) {
+		fprintf(stderr, "Invalid row number\n");
+		error = 1;
+	}
+
+	row_val = atoi(temp);
+
+	/* extract the value between the second brackets */
+	strncpy(temp, open2 + 1, close2 - open2 - 1);
+	temp[close2 - open2 - 1] = '\0';
+	if (!is_valid_number(temp)) {
+		fprintf(stderr, "Invalid col number\n");
+		error=1;
+	}
+	col_val = atoi(temp);
+
+	/* check if there are more numbers after the brackets */
+	after_brackets = close2 + 1;
+
+	if (*after_brackets == '\0' && error == 0) {
+		/* no additional numbers */
+		int i;
+		for (i = 0; i < row_val * col_val; i++) {
+			add_number(0,struct_DC);
+		}
+	} else if(error==0){
+		/* additional numbers exist – send each one separately */
+		token = strtok(after_brackets, " ,");
+		while (token != NULL) {
+			if (!is_valid_number(token)) {
+				fprintf(stderr, "Invalid number: %s\n", token);
+				error = 1;
+			} else {
+				add_number(atoi(token),struct_DC);
+				token = strtok(NULL, " ,");
+			}
+		}
+	}
+
+}
+
+}
+void entry(char row[],SEMEL** SEMELS,semel_count,entery** enterys)
+{
+char *command,*semel; 
+int i=0;
+int right_name=1;
+static int size_of_entery_struct=0 ;
+int addres;
+command= strtok(row, " ");
+semel= strtok(NULL, " ");
+if(semel==NULL)
+{
+fprintf(stderr, "missig operand");
+}
+while(i<semel_count)
+{
+if(strcmp(semel,SEMELS[i]->namee)==0){
+SEMELS[i]->ex_en=1;
+right_name=0;
+}
+}
+if(right_name==0)
+{
+	if(enterys=NULL)
+{
+    enterys = ((entery*)malloc(sizeof(entery)));
+    if (enterys == NULL) {
+        fprintf(stderr, "Error: malloc failed.\n");
+        return ;
+    }
+}
+else{
+    /* הוספת איבר ראשון */
+
+    /* הגדלת המערך בכל הוספה נוספת */
+    temp =( (entery*)realloc(enterys, (size_of_entery_struct + 1) * sizeof(entery)));
+    if (temp == NULL) {
+        fprintf(stderr, "Error: realloc failed.\n");
+        free(array);
+        return ;
+    }
+   enterys = temp;
+	size_of_entery_struct++;
+}
+
+}
+entreys[size_of_extern_struct]->name=semel;
+addres=SEMELS[i]->addres;
+addres = (num & 0xFF);
+
+    /* שאר הסיביות (אם בכלל) נשמרות ב-second */
+addres=((num >> 8) & 0xFF);
+
+enterys[size_of_entery_struct]->addres=addres;
+}
+else fprintf(stderr, "unvalid matrix name"){
+}
+
+void extern_func(char row[],SEMEL** SEMELS,int semel_count, extern_** ex)
+{
+
+char *command,*semel; 
+int i=0;
+int right_name=1;
+static int size_of_extern_struct=0;
+int addres;
+command= strtok(row, " ");
+semel= strtok(NULL, " ");
+if(semel==NULL)
+{
+fprintf(stderr, "missig operand");
+}
+while(i<semel_count)
+{
+if(strcmp(semel,SEMELS[i]->namee)==0){
+SEMELS[i]->ex_en=1;
+right_name=0;
+}
+}
+if(right_name==0)
+{
+	if(ex=NULL)
+{
+    ex = ((extern_*)malloc(sizeof(extern_)));
+    if (ex == NULL) {
+        fprintf(stderr, "Error: malloc failed.\n");
+        return ;
+    }
+
+else{
+    /* הוספת איבר ראשון */
+
+    /* הגדלת המערך בכל הוספה נוספת */
+    temp =( (extern_*)realloc(ex, (size + 1) * sizeof(extern_)));
+    if (temp == NULL) {
+        fprintf(stderr, "Error: realloc failed.\n");
+        free(ex);
+        return ;
+    }
+   ex = temp;
+	size_of_extern_struct++;
+}
+
+}
+ex[size_of_extern_struct]->name=semel;
+addres=SEMELS[i]->addres;
+addres = (num & 0xFF);
+
+    /* שאר הסיביות (אם בכלל) נשמרות ב-second */
+addres=((num >> 8) & 0xFF);
+
+ex[size_of_extern_struct]->addres=addres;
+}
+else fprintf(stderr, "unvalid matrix name"){
+}
+
 }
