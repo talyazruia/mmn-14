@@ -319,7 +319,7 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_co
            
 		new_SEMEL->type = type;
 		new_SEMEL->addres = addres;
-		new_SEMEL->ex = 0; 
+		new_SEMEL->ex_en = 0; 
 
 		temp = realloc(*semels, (*semel_count + 1) * sizeof(SEMEL*));
 		if (!temp) 

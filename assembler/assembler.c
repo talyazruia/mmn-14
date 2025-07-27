@@ -1,9 +1,11 @@
 #include "assembler.h"
 
-int IC =100;
-int DC =0;
-int error =0;
-int size_of_binary_struct=0;
+int IC = 100;
+int DC = 0;
+int error = 0;
+int current_size_instaction_struct = 0;
+int current_size_directive_struct = 0;
+
 int main(int argc, char * argv[])
 {
 	command cmd[] = {
@@ -26,23 +28,20 @@ int main(int argc, char * argv[])
 				};
 
 	command1 cmd1[]={
-		{".data",1,data },
-		{".string",1,string},
-		{".mat", 1,mat},
-		{".entry", 1,entry},
-		{".extern", 1,extern_func}
+		{".data",1},
+		{".string",1},
+		{".mat", 1},
+		{".entry", 1},
+		{".extern", 1}
 				};
 	FILE *f1;
 	FILE *f_used;
     	macro** macros;
     	int macro_count;
 	SEMEL** SEMELS = NULL;
-	entery** enterys=NULL;/*במעבר השני לשלוח לrow analysis */
-	extern_** ex=NULL;/*במעבר השני לשלוח לrow analysis */
 	int semel_count = 0;
 	binary_code * array=NULL;
-	binary_directive **struct_DC=NULL;
-	char* row="mov #5 r15";
+	binary_directive *struct_DC=NULL;
 	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
 	int j=0;
 
@@ -55,6 +54,39 @@ int main(int argc, char * argv[])
 	for(;i<argc; i++)
 	{
 		error=0;
+		IC =100;
+		DC =0;
+		error =0;
+		current_size_instaction_struct=0;
+		current_size_directive_struct=0;
+
+		if (SEMELS != NULL) 
+		{
+            		for (j = 0; j < semel_count; j++) 
+			{
+                		if (SEMELS[j]) 
+				{
+                    			free(SEMELS[j]->name);
+                    			free(SEMELS[j]);
+                		}
+            		}
+            		free(SEMELS);
+            		SEMELS = NULL;
+            		semel_count = 0;
+        	}
+        
+        	if (array != NULL) 
+		{
+            		free(array);
+            		array = NULL;
+        	}
+        
+        	if (struct_DC != NULL) 
+		{
+            		free(struct_DC);
+            		struct_DC = NULL;
+        	}
+		printf("Processing file: %s\n", argv[i]);
 		f1=end_file_name_as( argc, argv , i);
 		if(f1!=NULL)
 		{
@@ -67,8 +99,18 @@ int main(int argc, char * argv[])
 				update_data_symbol_addresses( SEMELS, semel_count); 
 				fprintf(stderr,"%d %d", IC, DC);
 				rewind(f_used);
-				add(row,SEMELS, semel_count,  cmd,  array);
     				fclose(f_used);
+				if (error != 0) 
+				{
+                    			char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(".am") + 1);
+                   	 		if (temp_file_name != NULL) 
+					{
+                        			strcpy(temp_file_name, argv[i]);
+                        			strcat(temp_file_name, ".am");
+                        			remove(temp_file_name);
+                        			free(temp_file_name);
+                    			}
+                		}
 			} 			
 			else 
 			{
@@ -82,13 +124,24 @@ int main(int argc, char * argv[])
             		printf("Could not open source file for %s\n", argv[i]);
         	}
 	}
-	for (j = 0; j < semel_count; j++) {
-        if (SEMELS[j]) {
-            free(SEMELS[j]->name);
-            free(SEMELS[j]);
-     	   }
-  	  }
-   free(SEMELS);
-return 0;
+	if (SEMELS != NULL) {
+        for (j = 0; j < semel_count; j++) {
+            if (SEMELS[j]) {
+                free(SEMELS[j]->name);
+                free(SEMELS[j]);
+            }
+        }
+        free(SEMELS);
+    }
+    
+    if (array != NULL) {
+        free(array);
+    }
+    
+    if (struct_DC != NULL) {
+        free(struct_DC);
+    }
+    
+    return 0;
 }
 

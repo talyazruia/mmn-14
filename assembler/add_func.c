@@ -1,42 +1,65 @@
 #include "assembler.h"
 
-void add_number(int num, binary_code** array) 
-{
-	binary_code* temp;
-    /* הקצאה מחדש עם מקום לעוד מבנה אחד */
-    	temp = (binary_code*) realloc(*array, size_of_binary_struct+1 * sizeof(binary_code));
-    	if (temp == NULL) 
-	{
-  /* במקרה של כישלון הקצאה */
-        free(array);
-	*arry=NULL;
+void add_number(int num, void** array, array_type type) {
+    void* temp;
+    int* current_size;
+    size_t item_size;
+    
+    switch (type) {
+        case TYPE_INSTRUCTION:
+            current_size = &current_size_instaction_struct;
+            item_size = sizeof(binary_code);
+            break;
+        case TYPE_DIRECTIVE:
+            current_size = &current_size_directive_struct;
+            item_size = sizeof(binary_directive);
+            break;
+        default:
+            return; 
+    }
+    
+    temp = realloc(*array, (*current_size + 1) * item_size);
+    if (temp == NULL) {
+    
+        free(*array);
+        *array = NULL;
         return;
-    	}
-	*array=temp;
-    (*array)[*current_size].first = (char)(num & 0xFF);
-    (*array)[*current_size].second = (char)((num >> 8) & 0xFF);
-    (*current_size)++;
+    }
+    
+    *array = temp;
+    if (type == TYPE_INSTRUCTION) {
+        binary_code* bc_array = (binary_code*)(*array);
+        bc_array[*current_size].first = (char)(num & 0xFF);
+        bc_array[*current_size].second = (char)((num >> 8) & 0xFF);
 
-    	
+   } else {
+        binary_directive* bd_array = (binary_directive*)(*array);
+        bd_array[*current_size].first = (char)(num & 0xFF);
+        bd_array[*current_size].second = (char)((num >> 8) & 0xFF);
+    }
+    
+    (*current_size)++;
 }
+
 void add_two_numbers(int num1, int num2, binary_code** array) 
 {
     	binary_code* temp;
 
-    	temp = (binary_code*) realloc(array, size_of_binary_struct+1 * sizeof(binary_code));
+    	temp = (binary_code*) realloc(array, (current_size_instaction_struct+1) * sizeof(binary_code));
     	if (temp == NULL) 
 	{
-        	free(array);
-		*array =NULL;
+        	fprintf(stderr, "Error: realloc failed\n");
+        	error=1;
         	return;
     	}
 
-    	 *array = temp;
-    (*array)[*current_size].first = (char)(((num1 & 0x0F) << 4) | (num2 & 0x0F));
-    (*array)[*current_size].second = 0;
-    (*current_size)++;
+    	*array = temp;
+    	(*array)[current_size_instaction_struct].first = (char)(((num1 & 0x0F) << 4) | (num2 & 0x0F));
+    	(*array)[current_size_instaction_struct].second = 0;
+    	current_size_instaction_struct++;
 
 }
+
 void  update_data_symbol_addresses(SEMEL** semels, int semel_count) 
 {
 	int i;
