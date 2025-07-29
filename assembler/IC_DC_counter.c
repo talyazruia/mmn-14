@@ -32,7 +32,6 @@ void ic_count_1_arg(char* row)
     	if (op1 == NULL) 
 	{
         	error = 1;
-		fprintf(stderr, "error, missing operand for 1-arg command\n");
         	IC += 1;
 		return;
     	}
@@ -59,7 +58,6 @@ fix_commas_in_place(row);
     if (op1 == NULL || op2 == NULL) 
     {
         error = 1;
-        fprintf(stderr, "error, missing operand for 2-arg command\n");
         IC += 1;
         return;
     }
@@ -109,14 +107,13 @@ fix_commas_in_place(row);
 
 void dc_count_string(char* row) 
 {
-   char* command;
+    char* command;
     char* op1;
     char* start_string;
     char* end_string;
     int string_length;
-    int i;
     
- command= strtok(row, " \t");
+    command = strtok(row, " \t");
     if(command == NULL)
         return;
     
@@ -127,48 +124,18 @@ void dc_count_string(char* row)
     /* הסרת רווחים מיותרים */
     while (*op1 == ' ' || *op1 == '\t') op1++;
     
-    /* מציאת המחרוזת בין הגרשיים */
-    /* חיפוש גרש רגיל או גרשיים בעברית/יוניקוד */
-    start_string = strchr(op1, '"');  /* גרש רגיל */
-    if (start_string == NULL) {
-        /* חיפוש גרשיים בעברית/יוניקוד */
-        for (i = 0; op1[i] != '\0'; i++) {
-            if ((unsigned char)op1[i] == 226 && (unsigned char)op1[i+1] == 128 && 
-                ((unsigned char)op1[i+2] == 156 || (unsigned char)op1[i+2] == 157)) {
-                start_string = &op1[i];
-                break;
-            }
-        }
-    }
+    /* מציאת המחרוזת בין הגרשיים הרגילים בלבד */
+    start_string = strchr(op1, '"');
+    if (start_string == NULL) 
+        return;
     
-    if (start_string != NULL) 
-    {
-        /* חיפוש גרש סוגר */
-        end_string = strchr(start_string + 1, '"');  /* גרש רגיל */
-        if (end_string == NULL) {
-            /* חיפוש גרש סוגר בעברית/יוניקוד */
-            for (i = (start_string - op1) + 3; op1[i] != '\0'; i++) {
-                if ((unsigned char)op1[i] == 226 && (unsigned char)op1[i+1] == 128 && 
-                    ((unsigned char)op1[i+2] == 156 || (unsigned char)op1[i+2] == 157)) {
-                    end_string = &op1[i];
-                    break;
-                }
-            }
-        }
-        
-        if (end_string != NULL) 
-        {
-            /* חישוב אורך המחרוזת */
-            if (strchr(op1, '"') == start_string) {
-                /* גרש רגיל - דילוג על תו אחד */
-                string_length = (end_string - start_string - 1);
-            } else {
-                /* גרש יוניקוד - דילוג על 3 תווים */
-                string_length = (end_string - start_string - 3);
-            }
-            DC += string_length + 1;  /* אורך המחרוזת + '\0' */
-        }
-    }
+    end_string = strchr(start_string + 1, '"');
+    if (end_string == NULL) 
+        return;
+    
+    /* חישוב אורך המחרוזת */
+    string_length = (end_string - start_string - 1);
+    DC += string_length + 1;  /* אורך המחרוזת + '\0' */
 }
 
 

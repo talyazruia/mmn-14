@@ -17,7 +17,7 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
     FILE* f2;
 	char* temp_file_name;
 	
-	f2= end_file_name_am(0, argv, i);
+	f2= end_file_name(0, argv, i,1);
 
     if (f2 == NULL) {
 	fprintf(stderr, "Failed to create .am file for %s\n", argv[i]);
@@ -133,23 +133,6 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
     }
 
     fclose(f1);
-
-    /*if (changes_made && error == 0) {
-        fclose(f1);
-        rewind(f2);
-        return f2;  
-    } else {
-        fclose(f2);
-        char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(END_FILE_NAME_AM) + 1);
-        if (temp_file_name != NULL) {
-            strcpy(temp_file_name, argv[i]);
-            strcat(temp_file_name, END_FILE_NAME_AM);
-            remove(temp_file_name);
-            free(temp_file_name);
-        }
-        rewind(f1);
-        return f1; 
-    }*/
 	if (error == 0) {
     rewind(f2);
     *macros_out = macros;

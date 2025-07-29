@@ -1,10 +1,10 @@
 #include "assembler.h"
-
 int IC = 100;
 int DC = 0;
 int error = 0;
 int current_size_instaction_struct = 0;
 int current_size_directive_struct = 0;
+
 
 int main(int argc, char * argv[])
 {
@@ -25,7 +25,7 @@ int main(int argc, char * argv[])
 		{"jsr", 1, 13},
 		{"rts", 0, 14},
 		{"stop", 0, 15}
-				};
+	};
 
 	command1 cmd1[]={
 		{".data",1},
@@ -33,17 +33,22 @@ int main(int argc, char * argv[])
 		{".mat", 1},
 		{".entry", 1},
 		{".extern", 1}
-				};
+	};
+
 	FILE *f1;
+	FILE* f2_ob;
+	FILE* f3_ex;
+	FILE* f4_en;
 	FILE *f_used;
-    	macro** macros;
-    	int macro_count;
+	macro** macros;
+	int macro_count;
 	SEMEL** SEMELS = NULL;
 	int semel_count = 0;
 	binary_code * array=NULL;
 	binary_directive *struct_DC=NULL;
-	int i=1;/*אם יש שגיאה נדליק אותו וככה נדע לא להוציא קבצי פלט*/
+	int i=1;
 	int j=0;
+int k=0;
 
 	if(argc==1)
 	{
@@ -51,6 +56,7 @@ int main(int argc, char * argv[])
 		error=1;
 		return 1;
 	}
+
 	for(;i<argc; i++)
 	{
 		error=0;
@@ -62,86 +68,122 @@ int main(int argc, char * argv[])
 
 		if (SEMELS != NULL) 
 		{
-            		for (j = 0; j < semel_count; j++) 
+			for (j = 0; j < semel_count; j++) 
 			{
-                		if (SEMELS[j]) 
+				if (SEMELS[j]) 
 				{
-                    			free(SEMELS[j]->name);
-                    			free(SEMELS[j]);
-                		}
-            		}
-            		free(SEMELS);
-            		SEMELS = NULL;
-            		semel_count = 0;
-        	}
-        
-        	if (array != NULL) 
+					free(SEMELS[j]->name);
+					free(SEMELS[j]);
+				}
+			}
+			free(SEMELS);
+			SEMELS = NULL;
+			semel_count = 0;
+		}
+
+		if (array != NULL) 
 		{
-            		free(array);
-            		array = NULL;
-        	}
-        
-        	if (struct_DC != NULL) 
+			free(array);
+			array = NULL;
+		}
+
+		if (struct_DC != NULL) 
 		{
-            		free(struct_DC);
-            		struct_DC = NULL;
-        	}
+			free(struct_DC);
+			struct_DC = NULL;
+		}
+
 		printf("Processing file: %s\n", argv[i]);
 		f1=end_file_name_as( argc, argv , i);
 		if(f1!=NULL)
 		{
 			macros = NULL;
-            		macro_count = 0;
+			macro_count = 0;
 			f_used =macro_analysis(f1,cmd, cmd1, argc, argv, i, &macros, &macro_count);
 			if (f_used != NULL) 
 			{
-    				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
+				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
+				for(k=0; k<semel_count; k++)
+{
+    fprintf(stderr, "%s %d %d\n", SEMELS[k]->name, SEMELS[k]->addres, SEMELS[k]->ex_en);
+}
 				update_data_symbol_addresses( SEMELS, semel_count); 
-				fprintf(stderr,"%d %d", IC, DC);
 				rewind(f_used);
-    				fclose(f_used);
+				second_row_analysis(f_used , cmd  ,cmd1 , &SEMELS, &semel_count,  &array, &struct_DC);
+				
+				f2_ob=end_file_name( argc,argv,i, 2);
+				if(f2_ob==NULL)
+				{
+					error=1;
+					return 0;
+				}
+
+				BinaryToBase4(&array,argc, argv, i, f2_ob, 1,&semel_count);
+				BinaryToBase4(&struct_DC,argc, argv, i, f2_ob, 2,&semel_count);
+				fclose(f2_ob);
+
+				f3_ex=end_file_name( argc,argv,i, 3);
+				if(f3_ex==NULL)
+				{
+					error=1;
+					return 0;
+				}
+				BinaryToBase4(SEMELS,argc, argv, i, f3_ex, 3,&semel_count);
+				fclose(f3_ex);
+
+				f4_en=end_file_name( argc,argv,i, 4);
+				if(f4_en==NULL)
+				{
+					error=1;
+					return 0;
+				}
+				BinaryToBase4(SEMELS,argc, argv, i, f4_en, 4,&semel_count);
+				fclose(f4_en);
+
+				fclose(f_used);
 				if (error != 0) 
 				{
-                    			char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(".am") + 1);
-                   	 		if (temp_file_name != NULL) 
+					char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(".am") + 1);
+					if (temp_file_name != NULL) 
 					{
-                        			strcpy(temp_file_name, argv[i]);
-                        			strcat(temp_file_name, ".am");
-                        			remove(temp_file_name);
-                        			free(temp_file_name);
-                    			}
-                		}
+						strcpy(temp_file_name, argv[i]);
+						strcat(temp_file_name, ".am");
+						remove(temp_file_name);
+						free(temp_file_name);
+					}
+				}
 			} 			
 			else 
 			{
-    				printf("Error processing macros for %s\n", argv[i]);
+				printf("Error processing macros for %s\n", argv[i]);
 				continue;
-		
 			}
 		}
-		 else
-        	{
-            		printf("Could not open source file for %s\n", argv[i]);
-        	}
+		else
+		{
+			printf("Could not open source file for %s\n", argv[i]);
+		}
 	}
+
 	if (SEMELS != NULL) {
-        for (j = 0; j < semel_count; j++) {
-            if (SEMELS[j]) {
-                free(SEMELS[j]->name);
-                free(SEMELS[j]);
-            }
-        }
-        free(SEMELS);
-    }
-    
-    if (array != NULL) {
-        free(array);
-    }
-    
-    if (struct_DC != NULL) {
-        free(struct_DC);
-    }
-    
-    return 0;
+		for (j = 0; j < semel_count; j++) {
+			if (SEMELS[j]) {
+				free(SEMELS[j]->name);
+				free(SEMELS[j]);
+			}
+		}
+		free(SEMELS);
+	}
+
+	if (array != NULL) {
+		free(array);
+	}
+
+	if (struct_DC != NULL) {
+		free(struct_DC);
+	}
+
+	return 0;
 }
 
+				

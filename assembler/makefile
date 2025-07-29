@@ -1,5 +1,5 @@
-assembler: assembler.o chang_file_name.o macro_analysis.o row_analysis.o command_analysis.o IC_DC_counter.o add_func.o
-	gcc -ansi -pedantic -Wall chang_file_name.o  macro_analysis.o row_analysis.o command_analysis.o assembler.o IC_DC_counter.o add_func.o -o assembler
+assembler: assembler.o chang_file_name.o macro_analysis.o row_analysis.o command_analysis.o IC_DC_counter.o add_func.o second_row_analysis.o binaryToBase4.o
+	gcc -ansi -pedantic -Wall chang_file_name.o  macro_analysis.o row_analysis.o command_analysis.o assembler.o IC_DC_counter.o add_func.o second_row_analysis.o binaryToBase4.o -o assembler
 
 assembler.o: assembler.c assembler.h
 	gcc -c -ansi -pedantic -Wall assembler.c -o assembler.o
@@ -21,3 +21,8 @@ IC_DC_counter.o:IC_DC_counter.c assembler.h
 
 add_func.o:add_func.c assembler.h
 	gcc -c -ansi -pedantic -Wall add_func.c -o add_func.o
+
+second_row_analysis.o:second_row_analysis.c assembler.h
+	gcc -c -ansi -pedantic -Wall second_row_analysis.c -o second_row_analysis.o
+binaryToBase4.o:binaryToBase4.c assembler.h
+	gcc -c -ansi -pedantic -Wall binaryToBase4.c -o binaryToBase4.o

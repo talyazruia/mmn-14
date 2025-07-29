@@ -1,7 +1,5 @@
 #include "assembler.h"
 
-void clear_row_arry();
-void add_SEMEL(char* label , int type ,int addres, SEMEL*** semels, int* semel_count); 
 
 void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],command1 cmd1[],SEMEL*** SEMELS, int* semel_count)
 {
@@ -10,6 +8,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 	char new_row_copy[MAX_LEN_OF_ROW + 2];
 	char label[31];
 	char *token;
+	char *token2;
 	size_t len;
 	size_t i;
 	int valid_label;
@@ -18,7 +17,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 	int addres;
 	char *new_row;
 	 char *colon;
-	/*int is_valid_func;*/
 	int found_command;
 	char* cmd_2_arg[] = {"mov","cmp","add", "sub","lea"};
 	char * cmd_1_arg[]={"not","clr","inc","dec","jmp","bne","red","prn","jsr"};
@@ -45,39 +43,18 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 			continue;
 		}
 		valid_label=1;
-		/*is_valid_func=0;*/
         	
         	len = strlen(token);
         	if (len > 0 && token[len - 1] == ':')
         	{
-			if (strlen(token) >= 31)
-	        	{
-            		fprintf(stderr, "Error: label too long (max 30 characters): %s\n", token);
-            		error = 1;
-            		continue;
-        		}
 			token[len-1]='\0';
 			strcpy(label,token);
-			if (!isalpha(label[0])) 
+			if (!is_valid_label_format(label)) 
 			{
-				fprintf(stderr, "error, label must start with a letter: %s\n", label);
-				error = 1;
-				valid_label = 0;
+    				error = 1;
+    				valid_label = 0;
 			}
-/* שאר התווים יכולים להיות אותיות או ספרות */
-			else 
-			{
-				for(i = 1; i < strlen(label); i++) 
-				{
-					if (!isalnum(label[i])) 
-					{
-						fprintf(stderr, "error, label can contain only letters and digits: %s\n", label);
-						error = 1;
-						valid_label = 0;
-						break;
-					}
-				}
-			}
+		
 			if(valid_label==1)
 			{
 				for (j = 0; j < macro_count; j++) 
@@ -90,18 +67,8 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
             					break;
 					}
 				}
-			}
-			if(valid_label==1 && SEMELS != NULL && *SEMELS != NULL)
-			{
-				for (j = 0; j<*semel_count; j++) {
-					if (strcmp(label, (*SEMELS)[j]->name) == 0) {
-						fprintf(stderr, "error, label already defined: %s\n", label);
-						error = 1;
-						valid_label = 0;
-						break;
-					}
-				}
-			}
+			}	
+		
 			if(valid_label==1)
 			{
 				for(i=0; i<16; i++)
@@ -149,7 +116,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 						}
 					}
 					if(found_command){
-						add_SEMEL(label,type,addres, SEMELS, semel_count);
+						add_SEMEL(label, type, addres, SEMELS, semel_count, 2);
 					if(SEMELS!=NULL)
 					{
 				 		colon = strchr(row, ':');
@@ -172,7 +139,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 						
 							if (strcmp(token, cmd_1_arg[j]) == 0) 
 							{
-								/*ic_count_1_arg(new_row);*/
 								strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
 								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
 								ic_count_1_arg(new_row_copy);	
@@ -189,7 +155,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 						}
 						if(strcmp(token, ".data") == 0) 
 						{
-							/*dc_count_data(new_row);*/
 							strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
 							new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
 							dc_count_data(new_row_copy);
@@ -223,7 +188,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				{
 					if(strcmp(token, cmd_2_arg[i])==0)
 					{
-						/*is_valid_func=1;*/
 						found_command=1;
 						ic_count_2_arg(row);
 						break;
@@ -234,7 +198,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				{
 					if (strcmp(token, cmd_1_arg[j]) == 0) 
 					{
-						/*is_valid_func=1;*/
 						found_command=1;
 						ic_count_1_arg(row);
 						break;
@@ -246,7 +209,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				{
 					if (strcmp(token, cmd_0_arg[j]) == 0) 
 					{
-						/*is_valid_func=1;*/
 						found_command=1;
 						IC++;
 						break;
@@ -268,6 +230,32 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					dc_count_mat(row);
 					found_command = 1;
 				}
+				if(strcmp(token, ".extern")==0)
+				{
+					token2 = strtok(NULL, " \t\n\r");
+					found_command = 1;
+					if (is_valid_label_format(token2))
+						add_SEMEL(token2,2/*type for extern*/,0, SEMELS, semel_count, 1);
+					else
+					{
+						fprintf(stderr, "Invalid label\n");
+						error=1;
+					}
+				}
+				if(strcmp(token, ".entry")==0)
+				{
+					token2 = strtok(NULL, " \t\n\r");
+					found_command = 1;
+					if (is_valid_label_format(token2))
+						add_SEMEL(token2,3/*type for entry*/,0, SEMELS, semel_count, 0);
+					else
+					{
+						fprintf(stderr, "Invalid label\n");
+						error=1;
+					}
+				}
+					
+
 				if(!found_command)
 				{
 					fprintf(stderr,"error, func name is not valid\n");
@@ -276,15 +264,48 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 			}	
 		}
  
-	for (j = 0; j < macro_count; j++) {
-	if(macros[j])
+	for (j = 0; j < macro_count; j++) 
 	{
-        free(macros[j]->name);
-        free(macros[j]->content);
-        free(macros[j]);
-	}
-    }
-    free(macros);
+		if(macros[j])
+		{
+        		free(macros[j]->name);
+        		free(macros[j]->content);
+        		free(macros[j]);
+		}
+    	}
+    	free(macros);
+}
+
+
+int is_valid_label_format(const char* label) 
+{
+    	size_t i;
+    	size_t len = strlen(label);
+    
+    	if (len > 30) 
+	{
+        	fprintf(stderr, "Error: label too long (max 30 characters): %s\n", label);
+		error=1;
+        	return 0;
+    	}
+    
+    	if (!isalpha(label[0])) 
+	{
+        	fprintf(stderr, "error, label must start with a letter: %s\n", label);
+		error=1;
+        	return 0;
+    	}
+    
+    	for(i = 1; i < len; i++) 
+	{
+        	if (!isalnum(label[i])) 
+		{
+            		fprintf(stderr, "error, label can contain only letters and digits: %s\n", label);
+			error=1;
+            		return 0;
+        	}
+    	}
+    return 1;
 }
 
 void clear_row_arry() 
@@ -294,43 +315,82 @@ void clear_row_arry()
 }
 
 
-void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_count)
+void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_count, int ex_en)
 {
-	
 	SEMEL* new_SEMEL;
 	SEMEL** temp;
+	int j;
+
+	if(SEMELS != NULL && *SEMELS != NULL)
+	{
+		for (j = 0; j<*semel_count; j++) 
+		{
+			if (strcmp(label, (*SEMELS)[j]->name) == 0) 
+			{
+				if((*SEMELS)[j]->ex_en==1 && ex_en==2 ||(*SEMELS)[j]->ex_en==2 && ex_en==1)/*זה תווית אקסטרן ומה שאני מכניסה היא רגילה רק נשנה את הסוג ולא נוסיף כי היא כבר קיימת*/
+				{	
+					fprintf(stderr, "A regular label cannot be an extern label and vice versa.\n");
+					error=1;
+					return;
+				}
+				else if(((*SEMELS)[j]->ex_en==1 && ex_en==0) || ((*SEMELS)[j]->ex_en==0 && ex_en==1))
+				{
+					fprintf(stderr, "error, A label cannot be both extern and entry.\n");/*תווית לא יכולה להיות גם אקסטרן וגם אנטרי*/
+					error=1;
+					return;
+				}
+				else if((*SEMELS)[j]->ex_en==2 &&  ex_en==0)
+				{
+					(*SEMELS)[j]->ex_en=ex_en;
+					return;
+				}
+				else if((*SEMELS)[j]->ex_en==0 && ex_en==2)
+				{
+					(*SEMELS)[j]->addres=addres;
+					return;
+				}
+				else if((*SEMELS)[j]->ex_en==2 && ex_en==2)
+				{
+					fprintf(stderr, "error, label already defined: %s\n", label);
+					error = 1;
+					return;
+				}
+			}
+		}
+	}
 
 	new_SEMEL = (SEMEL*)malloc(sizeof(SEMEL));
-		if (new_SEMEL == NULL) {
+	if (new_SEMEL == NULL) 
+	{
                 fprintf(stderr, "error, memory allocation failed\n");
                 error = 1;
 		return;
-		}
+	}
 
-            new_SEMEL->name = (char*)malloc(strlen(label) + 1);
-            if (new_SEMEL->name == NULL) {
+        new_SEMEL->name = (char*)malloc(strlen(label) + 1);
+        if (new_SEMEL->name == NULL) 
+	{
                 fprintf(stderr, "error, memory allocation failed\n");
                 error = 1;
                 free(new_SEMEL);
 		return;
-		}
-            strcpy(new_SEMEL->name, label);
+	}
+        strcpy(new_SEMEL->name, label);
 
-           
-		new_SEMEL->type = type;
-		new_SEMEL->addres = addres;
-		new_SEMEL->ex_en = 0; 
+        new_SEMEL->type = type;
+	new_SEMEL->addres = addres;
+	new_SEMEL->ex_en = ex_en; 
 
-		temp = realloc(*semels, (*semel_count + 1) * sizeof(SEMEL*));
-		if (!temp) 
-		{
-    			fprintf(stderr, "error, memory allocation failed\n");
-    			error = 1;
-			free(new_SEMEL->name);
-        		free(new_SEMEL);
-    			return;
-		}
-		*semels = temp;
-            	(*semels)[*semel_count] = new_SEMEL;
-    		(*semel_count)++;
+	temp = realloc(*SEMELS, (*semel_count + 1) * sizeof(SEMEL*));
+	if (!temp) 
+	{
+    		fprintf(stderr, "error, memory allocation failed\n");
+    		error = 1;
+		free(new_SEMEL->name);
+        	free(new_SEMEL);
+    		return;
+	}
+	*SEMELS = temp;
+        (*SEMELS)[*semel_count] = new_SEMEL;
+    	(*semel_count)++;
 }
