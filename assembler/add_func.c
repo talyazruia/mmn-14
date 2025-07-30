@@ -36,6 +36,7 @@ void add_number(int num, void** array, array_type type, int ARE) {
         binary_code* bc_array = (binary_code*)(*array);
         bc_array[*current_size].first = (char)num;
         bc_array[*current_size].second = (char)(ARE << 6);
+	IC++;
     } else {
         binary_directive* bd_array = (binary_directive*)(*array);
         bd_array[*current_size].first  = (char)(num >> 2);             
@@ -66,14 +67,15 @@ void add_two_numbers(int num1, int num2, binary_code** array)
     (*array)[current_size_instaction_struct].second = 0;
     
     current_size_instaction_struct++;
+	IC++;
 }
 
-void  update_data_symbol_addresses(SEMEL** semels, int semel_count) 
+void  update_data_symbol_addresses(SEMEL** semels, int* semel_count) 
 {
 	int i;
-    	for (i = 0; i < semel_count; i++) 
+    	for (i = 0; i < *semel_count; i++) 
 	{
-		if(semels[i]->ex_en==0&&semels[i]->addres==0)
+		if(semels[i]->ex_en==0 && semels[i]->addres==3)
 		{
 			error=1;
 			fprintf(stderr,"error,entry label has to be defined %s\n",semels[i]->name);

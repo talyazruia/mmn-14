@@ -46,10 +46,13 @@ int main(int argc, char * argv[])
 	int semel_count = 0;
 	binary_code * array=NULL;
 	binary_directive *struct_DC=NULL;
+	extern_label* extern_labels = NULL;
+	int count_of_extern_labels = 0;
+
 	int i=1;
 	int j=0;
-int k=0;
-
+	int k=0;
+	int sum_of_rowes=0;
 	if(argc==1)
 	{
 		fprintf(stderr,"error, ther no input files.\n");
@@ -103,17 +106,23 @@ int k=0;
 			if (f_used != NULL) 
 			{
 				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
+				update_data_symbol_addresses( SEMELS, &semel_count);
 				for(k=0; k<semel_count; k++)
 				{
     					fprintf(stderr, "%s %d %d\n", SEMELS[k]->name, SEMELS[k]->addres, SEMELS[k]->ex_en);
 				}
-				fprintf(stderr, "%d %d\n", IC, DC);
-				update_data_symbol_addresses( SEMELS, semel_count); 
+				fprintf(stderr, "%d %d\n", IC, DC); 
 				rewind(f_used);
-				second_row_analysis(f_used , cmd  ,cmd1 , &SEMELS, &semel_count,  &array, &struct_DC);
+				sum_of_rowes=DC+IC;
+				IC=100;
+				second_row_analysis(f_used , cmd  ,cmd1 , &SEMELS, &semel_count,  &array, &struct_DC,&extern_labels , &count_of_extern_labels);
 				print_binary_code_array(array, current_size_instaction_struct);
+				for(k = 0; k < count_of_extern_labels; k++)
+				{
+					fprintf(stderr, "%s %d \n", extern_labels[k].name, extern_labels[k].addres);
+				}
 
-				if(error==0)
+				if(error==0&&sum_of_rowes<256)
 				{
 				f2_ob=end_file_name( argc,argv,i, 2);
 				if(f2_ob==NULL)
@@ -132,7 +141,7 @@ int k=0;
 					error=1;
 					return 0;
 				}
-				BinaryToBase4((void**)SEMELS,argc, argv, i, f3_ex, 3,&semel_count);
+				BinaryToBase4((void**)&extern_labels,argc, argv, i, f3_ex, 3,&count_of_extern_labels);
 				fclose(f3_ex);
 
 				f4_en=end_file_name( argc,argv,i, 4);
@@ -185,6 +194,15 @@ int k=0;
 			}
 		}
 		free(SEMELS);
+	}
+	
+	if (extern_labels != NULL) 
+	{
+		for (j = 0; j < count_of_extern_labels; j++) 
+			free(extern_labels[j].name); 
+	
+		free(extern_labels); 
+
 	}
 
 	if (array != NULL) 

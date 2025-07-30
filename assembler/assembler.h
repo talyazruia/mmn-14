@@ -65,31 +65,32 @@ typedef enum {
     TYPE_DIRECTIVE
 } array_type;
 
-
+typedef struct {
+	char * name;
+	int addres;
+}extern_label;
 
 extern int error;
 extern int current_size_instaction_struct;
 extern int current_size_directive_struct;
-
+void add_to_extern_label(extern_label ** extern_labels,int* COUNT_OF_EXTERN_LABEL,char* str);
 int main(int argc, char * argv[]);
 FILE *end_file_name_as(int argc, char * argv[],int i);
-void row_analysis(FILE *f, int macro_count, macro **macros, command cmd[], command1 cmd1[], SEMEL ***SEMELS, int *semel_count);
+void row_analysis(FILE *f, int macro_count, macro **macros, command cmd[], command1 cmd1[], SEMEL ***SEMELS, int *semel_count );
 void clear_row_arry();
 FILE *end_file_name(int argc, char * argv[], int i,int type); 
 FILE * macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out);
 void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_count,int ex_en);
-void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC);
-
-int add(char row[],SEMEL** SEMELS, int* semel_count, command cmd[], binary_code** array);
+void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC,extern_label** extern_labels,int* count_of_extern_labels);
+int add(char row[],SEMEL** SEMELS, int* semel_count, command cmd[], binary_code** array,extern_label** extern_labels,int* count_of_extern_labels);
 void data(char row[],binary_directive **struct_DC);
 void string(char row[],binary_directive **struct_DC);
 void mat(char row[], binary_directive** struct_DC);
 void entry_extern(char row[]);
-
 void print_binary_code_array(binary_code* array, int size);
 void add_number(int num, void** array, array_type type,int flag);
 void add_two_numbers(int num1, int num2, binary_code** array); 
-void update_data_symbol_addresses(SEMEL** semels, int semel_count);
+void update_data_symbol_addresses(SEMEL** semels, int* semel_count);
 int has_two_square_bracket_pairs( char* str);
 int is_valid_integer(const char *str);
 void ic_count_1_arg(char* row);
@@ -103,7 +104,6 @@ int* valid_matrix(char* str,SEMEL** SEMELS, int* semel_count);
 int valid_SEMEL(char* str, SEMEL** SEMELS, int* semel_count);
 void to_binary(int opcode, int op1, int op2, binary_code** array);  
 void fix_commas_in_place(char *line);
-void encode_10bit_to_chars(int num, char *a, char *b);
 void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int struct_type, int* semel_count);
 char *base4_convert(char a, char b, char* result);
 int is_valid_label_format(const char* label);

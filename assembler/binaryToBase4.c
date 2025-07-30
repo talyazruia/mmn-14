@@ -1,26 +1,6 @@
 #include "assembler.h"
 
-/*
- * פונקציה: encode_10bit_to_chars
- * תיאור: מקודדת את 10 הביטים הנמוכים של מספר שלם לשני תווים
- * הביטים העליונים (8) נשמרים ב-a, הביטים הנמוכים (2) נשמרים בביטים העליונים של b
- */
-void encode_10bit_to_chars(int num, char *a, char *b)
-{
-	unsigned short value;
-	/* שמירה רק של ال-10 ביטים הנמוכים */
-	value = (unsigned short)(num & 0x3FF);
-	/* שמירת 8 הביטים העליונים (ביטים 2 עד 9) ב-a */
-	*a = (char)((value >> 2) & 0xFF);
-	/* שמירת 2 הביטים הנמוכים בביטים 7-6 של b */
-	*b = (char)((value & 0x3) << 6);
-}
 
-/*
- * פונקציה: base4_convert
- * תיאור: ממירה 8 ביטים מ-a ו-2 ביטים עליונים מ-b למחרוזת בסיס 4
- * 00 -> 'a', 01 -> 'b', 10 -> 'c', 11 -> 'd'
- */
 char *base4_convert(char a, char b, char* result)
 {
 	int i;
@@ -62,6 +42,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 	SEMEL** semel;
 	binary_directive** bd_array;	
 	binary_code** bc_array;
+	extern_label ** extern_labels1;
 	
 	if (array == NULL) {
 		fprintf(stderr,"Error: array is NULL\n");
@@ -72,10 +53,6 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 		fprintf(stderr,"Error: file is NULL\n");
 		return;
 	}
-	/*if (error != 0) {
-		fprintf(stderr,"Files wont be opened because there are errors.\n");
-		return;
-	}*/
 	
 	result = (char *)malloc(6 * sizeof(char));
 	if (result == NULL) {
@@ -83,11 +60,6 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 		return;
 	}
 	
-	if (IC + DC > 256) {
-		fprintf(stderr, "Error: Too many rows of code\n");
-		free(result);
-		return;
-	}
 	
 			
 			switch (struct_type) {
@@ -148,11 +120,11 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 				
 				case 3: {
 					j = 0;					
-					semel = (SEMEL**)array;
+					extern_labels1 = (extern_label**)array;
 					while (j < *semel_count) {
-						if(semel[j]->ex_en == 0) {
-							fprintf(f2, "%s ", semel[j]->name);
-							a = (char)(semel[j]->addres);            
+						{
+							fprintf(f2, "%s ", (*extern_labels1)[j].name);
+							a = (char)(*extern_labels1)[j].addres;            
 							b = 0; 
 							base4_convert(a, b, result);
 							for (k = 0; k <4; k++) {
@@ -169,7 +141,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 					j = 0;					
 					semel = (SEMEL**)array;
 					while (j < *semel_count) {
-						if(semel[j]->ex_en == 1) {
+						if(semel[j]->ex_en == 0) {
 							fprintf(f2, "%s ", semel[j]->name);
 							a = (char)(semel[j]->addres);            
 							b = 0; 

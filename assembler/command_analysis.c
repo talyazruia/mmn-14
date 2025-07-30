@@ -54,7 +54,7 @@ void to_binary(int opcode, int op1, int op2, binary_code** array) {
 
 (*array)[current_size_instaction_struct].second = 0;
 current_size_instaction_struct++;
-
+	IC++;
 
 
 }
@@ -145,18 +145,21 @@ int* valid_matrix(char* str,SEMEL** SEMELS, int* semel_count)
 int valid_SEMEL(char* str, SEMEL** SEMELS, int* semel_count)
 {
 	int i = 0;
+
 	while (i < *(semel_count))
+
 	{
 		if (strcmp(SEMELS[i]->name, str) == 0)
 		{
-			if(SEMELS[i]->ex_en!=0)
-				   return i;
-			else
+				
+			 if(SEMELS[i]->ex_en==0)
 			{
+				fprintf(stderr,"error label operand cant be entry label\n");
 				error=1;
-				fprintf(stderr, "label oprand can not be entery");
 				return -1;
 			}
+			else
+				return i;
 		}
 		i++;
 	}
@@ -165,8 +168,47 @@ int valid_SEMEL(char* str, SEMEL** SEMELS, int* semel_count)
 	return -1;
 
 }  
+void add_to_extern_label(extern_label ** extern_labels,int* COUNT_OF_EXTERN_LABEL,char* str)
+{
 
-int add(char row[],SEMEL** SEMELS, int* semel_count, command cmd[], binary_code** array)
+	if (*COUNT_OF_EXTERN_LABEL == 0)
+	{
+		*extern_labels = (extern_label*)malloc(sizeof(extern_label));
+		if (*extern_labels == NULL)
+    		{
+			fprintf(stderr, "error, memory allocation failed\n");
+			error = 1;
+			return;
+		}
+	}
+	else
+	{
+		extern_label* temp = (extern_label*)realloc(*extern_labels, (*COUNT_OF_EXTERN_LABEL + 1) * sizeof(extern_label));
+		if (temp == NULL)
+		{
+			fprintf(stderr, "error, memory allocation failed\n");
+			error= 1;
+			return;
+		}
+		*extern_labels = temp;
+	}
+
+
+
+/* אחרי שהוקצה מקום - נעדכן את האיבר החדש */
+	(*extern_labels)[*COUNT_OF_EXTERN_LABEL].addres = IC;/* כתובת */;
+	(*extern_labels)[*COUNT_OF_EXTERN_LABEL].name = (char*)malloc(strlen(str) + 1);
+	if ((*extern_labels)[*COUNT_OF_EXTERN_LABEL].name == NULL)
+	{
+		fprintf(stderr, "error, memory allocation failed\n");
+		error = 1;
+		return;
+	}
+	strcpy((*extern_labels)[*COUNT_OF_EXTERN_LABEL].name, str);
+	(*COUNT_OF_EXTERN_LABEL)++;
+}
+
+int add(char row[],SEMEL** SEMELS, int* semel_count, command cmd[], binary_code** array,extern_label ** extern_labels,int* COUNT_OF_EXTERN_LABEL)
 {
 	char* command;
 	char* op1=NULL;
@@ -374,50 +416,52 @@ int add(char row[],SEMEL** SEMELS, int* semel_count, command cmd[], binary_code*
 		to_binary(opcode, 0,0, array);
 	else if(op2_type==-1)
 		to_binary(opcode, 0,op1_type, array);
-	else  
+	else 
 		to_binary(opcode, op1_type, op2_type, array);
 	if(flag1==-1&&flag2==-1)
-		return;
+		return 1;
 	else if(flag2==-1){
-		if(op1_type==1)
+		if(op1_type==1){
+			if(SEMELS[semel_index]->ex_en==1)
+			 add_to_extern_label(extern_labels,COUNT_OF_EXTERN_LABEL,op1);
 			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, SEMELS[semel_index]->ex_en);
+		}
 		else if(op1_type==0)
 			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
 		else
-			add_two_numbers(op1_val,0, array);/*מקרה של אופרנד אחד רגיסטר נקרא מקור או יעד*/	
+			add_two_numbers(0,op1_val, array);
 	}
 	else if (flag1 + flag2 == 0)
-	{
 		add_two_numbers(op1_val, op2_val, array);
-	}
 	else if (flag1 == 2)
 	{
+		if(SEMELS[op1_mat[0]]->ex_en==1)
+		{
+			 add_to_extern_label(extern_labels,COUNT_OF_EXTERN_LABEL,op1);
+		}
 		add_number(SEMELS[op1_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op1_mat[0]]->ex_en);
 		add_two_numbers(op1_mat[1], op1_mat[2], array);
 		free(op1_mat);
 		op1_mat = NULL;
 	}
-	else if (flag1 == 1)
-	
-		
-		
-			/* מצא את האינדקס של op1 שוב */
-			/*int op1_semel_index = valid_SEMEL(op1, SEMELS, semel_count);*/
-			/*if (op1_semel_index != -1) {*/
-				add_number(op1_val, (void**)array, TYPE_INSTRUCTION, SEMELS[semel_index]->ex_en);
-			/*} else {
-				add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
-			}*/
-	
-	else{
+	else if (flag1 == 1){
+		if(SEMELS[semel_index]->ex_en==1)
+		{
+			 add_to_extern_label(extern_labels,COUNT_OF_EXTERN_LABEL,op1);
+		}	
+		add_number(op1_val, (void**)array, TYPE_INSTRUCTION, SEMELS[semel_index]->ex_en);
+	}
+	else
+	{
 		if(op1_type==3)
 			add_two_numbers(op1_val, 0,array);
 		else
 			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
-	
 	}
 	if (flag2 == 2)
 	{
+		if(SEMELS[op2_mat[0]]->ex_en==1)
+			 add_to_extern_label(extern_labels,COUNT_OF_EXTERN_LABEL,op2);
 		add_number(SEMELS[op2_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_mat[0]]->ex_en);
 		add_two_numbers(op2_mat[1], op2_mat[2], array);
 		free(op2_mat);
@@ -427,16 +471,12 @@ int add(char row[],SEMEL** SEMELS, int* semel_count, command cmd[], binary_code*
 	{
 		if(op2_type == 1)
 		{
-			/*if (op2_semel_index != -1) {
-				add_number(op2_val, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_semel_index]->ex_en);
-			} else {*/
-				add_number(op2_val, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_semel_index]->ex_en);
-			
+			if(SEMELS[op2_semel_index]->ex_en==1)
+				add_to_extern_label(extern_labels,COUNT_OF_EXTERN_LABEL,op2);
+			add_number(op2_val, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_semel_index]->ex_en);
 		}
 		else
-		{
 			add_number(op2_val, (void**)array, TYPE_INSTRUCTION, 0);
-		}
 	}
 	
 	return 0;

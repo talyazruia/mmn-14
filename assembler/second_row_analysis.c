@@ -1,7 +1,7 @@
 #include "assembler.h"
 
 
-void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC)
+void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC,extern_label** extern_labels,int * count_of_extern_labels)
 {
 	char row[MAX_LEN_OF_ROW];
 	char row_copy[MAX_LEN_OF_ROW];
@@ -44,7 +44,7 @@ void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEM
 				{
 					if(strcmp(token, cmd[i].name)==0)
 					{
-						add(new_row, *(SEMELS), semel_count, cmd, array);
+						add(new_row, *(SEMELS), semel_count, cmd, array, extern_labels, count_of_extern_labels);
 						break;
 					}
 				}
@@ -74,7 +74,7 @@ void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEM
 			{
 				if(strcmp(token, cmd[i].name)==0)
 				{
-					add(row, *(SEMELS),semel_count, cmd, array);
+					add(row, *(SEMELS),semel_count, cmd, array,extern_labels, count_of_extern_labels);
 					break;
 				}
 			}

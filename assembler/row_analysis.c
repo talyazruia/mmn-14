@@ -197,7 +197,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							}
 							found_command = 1;
 							if (is_valid_label_format(token2))
-								add_SEMEL(token2,3/*type for entry*/,0, SEMELS, semel_count, 0);
+								add_SEMEL(token2,1/*type for entry*/,1, SEMELS, semel_count, 0);
 							else
 							{
 								fprintf(stderr, "Invalid label\n");
@@ -290,7 +290,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					}
 					found_command = 1;
 					if (is_valid_label_format(token2))
-						add_SEMEL(token2,3/*type for entry*/,0, SEMELS, semel_count, 0);
+						add_SEMEL(token2,1/*type for entry*/,1, SEMELS, semel_count, 0);
 					else
 					{
 						fprintf(stderr, "Invalid label\n");
@@ -370,7 +370,7 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 		{
 			if (strcmp(label, (*SEMELS)[j]->name) == 0) 
 			{
-				if((*SEMELS)[j]->ex_en==1 && ex_en==2 ||(*SEMELS)[j]->ex_en==2 && ex_en==1)/*זה תווית אקסטרן ומה שאני מכניסה היא רגילה רק נשנה את הסוג ולא נוסיף כי היא כבר קיימת*/
+				if(((*SEMELS)[j]->ex_en==1 && ex_en==2 )||((*SEMELS)[j]->ex_en==2 && ex_en==1))/*זה תווית אקסטרן ומה שאני מכניסה היא רגילה רק נשנה את הסוג ולא נוסיף כי היא כבר קיימת*/
 				{	
 					fprintf(stderr, "A regular label cannot be an extern label and vice versa.\n");
 					error=1;
@@ -384,11 +384,13 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 				}
 				else if((*SEMELS)[j]->ex_en==2 &&  ex_en==0)
 				{
-					(*SEMELS)[j]->ex_en=ex_en;
+					(*SEMELS)[j]->ex_en=ex_en;       
 					return;
 				}
 				else if((*SEMELS)[j]->ex_en==0 && ex_en==2)
 				{
+					if(addres==IC)
+						(*SEMELS)[j]->type=0;
 					(*SEMELS)[j]->addres=addres;
 					return;
 				}
