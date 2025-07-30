@@ -52,214 +52,30 @@ char *base4_convert(char a, char b, char* result)
 	return result;
 }
 
-/*
- * פונקציה: BinaryToBase4
- * תיאור: ממירה מערך בינארי לפורמט בסיס 4 וכותבת לקובץ
- * פרמטרים:
- *   array - מצביע למערך המבנים
- *   argc - מספר הארגומנטים
- *   argv - מערך הארגומנטים  
- *   i - אינדקס הקובץ הנוכחי
- *   file_type - סוג הקובץ
- *   struct_type - סוג המבנה (1=binary_code, 2=binary_directive)
- */
-/*void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int struct_type,int* semel_count)
-{
-	 printf("BinaryToBase4 called: struct_type=%d, array=%p, f2=%p\n", struct_type, (void*)array, (void*)f2);
-				
-	char a, b;			
-	char* result;
-	int j;				
-	int k;				
-	SEMEL** semel;
-	binary_directive** bd_array;	
-	binary_code** bc_array;
-	result = (char *)malloc(6 * sizeof(char));
-	if (result == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed\n");
-        return;
-    }
-	printf("BinaryToBase4 called: struct_type=%d, array=%p, f2=%p\n", 
-           struct_type, (void*)array, (void*)f2);
-    
-    if (array == NULL) {
-        printf("Error: array is NULL\n");
-        return;
-    }
-    
-    if (f2 == NULL) {
-        printf("Error: file is NULL\n");
-	free(result);
-        return;
-    }
-	printf("File pointer is valid\n");
-	if (result == NULL)
-	{
-		fprintf(stderr, "Error: Memory allocation failed\n");
-		return;
-	}
-	
-	
-	
-	printf("About to check IC + DC condition\n");
-if (IC + DC <= 250) {
-printf("IC + DC condition passed\n");
-		
-		if (error == 0) {
-		printf("No errors, proceeding\n");
-			
-			
-			
-						
-			IC = 100;	
-			j = 0;			
-			switch (struct_type) {
-				case 1: {
-					
-					bc_array = (binary_code**)array;
-					
-					
-					while (j < current_size_instaction_struct)
-					{
-						
-						encode_10bit_to_chars(IC, &a, &b);
-						 base4_convert(a, b, result);
-						
-						
-						for (k = 0; result[k] != '\0'; k++) {
-							fprintf(f2, "%c", result[k]);
-						}
-						fprintf(f2, " ");
-						
-						
-					base4_convert((*bc_array)[j].first, (*bc_array)[j].second, result);
-						for (k = 0; result[k] != '\0'; k++) {
-							fprintf(f2, "%c", result[k]);
-						}
-						fprintf(f2, "\n");
-						
-						j++;
-						IC++;
-					}
-					break;
-				}
-				
-				case 2: {
-					
-					 bd_array = (binary_directive**)array;
-					
-					
-					while (j < current_size_directive_struct)
-					{
-						
-						encode_10bit_to_chars(IC, &a, &b);
-						base4_convert(a, b, result);
-						
-						
-						for (k = 0; result[k] != '\0'; k++) {
-							fprintf(f2, "%c", result[k]);
-						}
-						fprintf(f2, " ");
-						
-						
-						base4_convert((*bd_array)[j].first, (*bd_array)[j].second, result);
-						for (k = 0; result[k] != '\0'; k++) {
-							fprintf(f2, "%c", result[k]);
-						}
-						fprintf(f2, "\n");
-						
-						j++;
-						IC++;
-					}
-					break;
-				}
-				case 3:
-				
-				 {
-					j=0;					
-					semel=(SEMEL**)array;
-					while (j < *semel_count){
-						if(semel[j]->ex_en==0){
-					fprintf(f2,"%s ",semel[j]->name);
-					a = (char)(semel[j]->addres);            
-					b = (char)((semel[j]->ex_en) << 6);  
-					 base4_convert(a,b, result);
-						for (k = 0; result[k] != '\0'; k++) {
-							fprintf(f2, "%c", result[k]);
-						}
-						fprintf(f2, "\n");
-					}
-					j++;
-					}
-						
-					break;	
-				}
-			case 4:{
-			{
-				j=0;					
-					semel=(SEMEL**)array;
-					while (j < *semel_count){
-						if(semel[j]->ex_en==1){
-					fprintf(f2,"%s ",semel[j]->name);
-					a = (char)(semel[j]->addres);            
-					b = (char)((semel[j]->ex_en) << 6);  
-					 base4_convert(a,b, result);
-						for (k = 0; result[k] != '\0'; k++) {
-							fprintf(f2, "%c", result[k]);
-						}
-						fprintf(f2, "\n");
-					}
-					j++;
-					}
-						
-					break;	
-			}	
-				default:
-					fprintf(stderr, "Error: Invalid struct_type\n");
-					break;
-			
-			
-			free(result);
-		}
-		else {
-			
-			fprintf(stderr, "ERROR: Cannot open ob file since you have errors in your code\n");
-		}
-	}
-	else {
-		
-		fprintf(stderr, "Error: Too many rows of code\n");
-	}
-}
-
-
-
-	
-	
-	
-}*/
-
-
 
 void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int struct_type, int* semel_count)
 {
 	char a, b;
 	char* result;
-	int j;
+	int j=0;
 	int k;
 	SEMEL** semel;
 	binary_directive** bd_array;	
 	binary_code** bc_array;
 	
 	if (array == NULL) {
-		printf("Error: array is NULL\n");
+		fprintf(stderr,"Error: array is NULL\n");
 		return;
 	}
 	
 	if (f2 == NULL) {
-		printf("Error: file is NULL\n");
+		fprintf(stderr,"Error: file is NULL\n");
 		return;
 	}
+	/*if (error != 0) {
+		fprintf(stderr,"Files wont be opened because there are errors.\n");
+		return;
+	}*/
 	
 	result = (char *)malloc(6 * sizeof(char));
 	if (result == NULL) {
@@ -267,14 +83,18 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 		return;
 	}
 	
-	if (IC + DC <= 250) {
-		if (error == 0) {
-			IC = 100;
-			j = 0;
+	if (IC + DC > 256) {
+		fprintf(stderr, "Error: Too many rows of code\n");
+		free(result);
+		return;
+	}
+	
 			
 			switch (struct_type) {
 				case 1: {
+					IC=100;
 					bc_array = (binary_code**)array;
+					j=0;
 					
 					while (j < current_size_instaction_struct)
 					{
@@ -301,6 +121,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 				
 				case 2: {
 					bd_array = (binary_directive**)array;
+					j=0;
 					
 					while (j < current_size_directive_struct)
 					{
@@ -367,14 +188,6 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 					fprintf(stderr, "Error: Invalid struct_type\n");
 					break;
 			}
-		}
-		else {
-			fprintf(stderr, "ERROR: Cannot open ob file since you have errors in your code\n");
-		}
-	}
-	else {
-		fprintf(stderr, "Error: Too many rows of code\n");
-	}
 	
 	free(result);
 }

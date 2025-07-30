@@ -86,7 +86,7 @@ void string(char row[],binary_directive **struct_DC);
 void mat(char row[], binary_directive** struct_DC);
 void entry_extern(char row[]);
 
-
+void print_binary_code_array(binary_code* array, int size);
 void add_number(int num, void** array, array_type type,int flag);
 void add_two_numbers(int num1, int num2, binary_code** array); 
 void update_data_symbol_addresses(SEMEL** semels, int semel_count);

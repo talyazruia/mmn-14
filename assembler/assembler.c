@@ -104,13 +104,17 @@ int k=0;
 			{
 				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
 				for(k=0; k<semel_count; k++)
-{
-    fprintf(stderr, "%s %d %d\n", SEMELS[k]->name, SEMELS[k]->addres, SEMELS[k]->ex_en);
-}
+				{
+    					fprintf(stderr, "%s %d %d\n", SEMELS[k]->name, SEMELS[k]->addres, SEMELS[k]->ex_en);
+				}
+				fprintf(stderr, "%d %d\n", IC, DC);
 				update_data_symbol_addresses( SEMELS, semel_count); 
 				rewind(f_used);
 				second_row_analysis(f_used , cmd  ,cmd1 , &SEMELS, &semel_count,  &array, &struct_DC);
-				
+				print_binary_code_array(array, current_size_instaction_struct);
+
+				if(error==0)
+				{
 				f2_ob=end_file_name( argc,argv,i, 2);
 				if(f2_ob==NULL)
 				{
@@ -118,8 +122,8 @@ int k=0;
 					return 0;
 				}
 
-				BinaryToBase4(&array,argc, argv, i, f2_ob, 1,&semel_count);
-				BinaryToBase4(&struct_DC,argc, argv, i, f2_ob, 2,&semel_count);
+				BinaryToBase4((void**)&array,argc, argv, i, f2_ob, 1,&semel_count);
+				BinaryToBase4((void**)&struct_DC,argc, argv, i, f2_ob, 2,&semel_count);
 				fclose(f2_ob);
 
 				f3_ex=end_file_name( argc,argv,i, 3);
@@ -128,7 +132,7 @@ int k=0;
 					error=1;
 					return 0;
 				}
-				BinaryToBase4(SEMELS,argc, argv, i, f3_ex, 3,&semel_count);
+				BinaryToBase4((void**)SEMELS,argc, argv, i, f3_ex, 3,&semel_count);
 				fclose(f3_ex);
 
 				f4_en=end_file_name( argc,argv,i, 4);
@@ -137,10 +141,15 @@ int k=0;
 					error=1;
 					return 0;
 				}
-				BinaryToBase4(SEMELS,argc, argv, i, f4_en, 4,&semel_count);
+				BinaryToBase4((void**)SEMELS,argc, argv, i, f4_en, 4,&semel_count);
 				fclose(f4_en);
 
 				fclose(f_used);
+				}
+				else
+				{
+					printf("Errors found - skipping file generation for %s\n", argv[i]);
+				}
 				if (error != 0) 
 				{
 					char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(".am") + 1);
@@ -165,9 +174,12 @@ int k=0;
 		}
 	}
 
-	if (SEMELS != NULL) {
-		for (j = 0; j < semel_count; j++) {
-			if (SEMELS[j]) {
+	if (SEMELS != NULL) 
+	{
+		for (j = 0; j < semel_count; j++) 
+		{
+			if (SEMELS[j]) 
+			{
 				free(SEMELS[j]->name);
 				free(SEMELS[j]);
 			}
@@ -175,15 +187,33 @@ int k=0;
 		free(SEMELS);
 	}
 
-	if (array != NULL) {
+	if (array != NULL) 
+	{
 		free(array);
 	}
 
-	if (struct_DC != NULL) {
+	if (struct_DC != NULL) 
+	{
 		free(struct_DC);
 	}
 
 	return 0;
 }
 
-				
+	void print_binary_code_array(binary_code* array, int size) {
+    int k, bit;
+    for (k = 0; k < size; k++) {
+        /* הדפסת first */
+        for (bit = 7; bit >= 0; bit--) {
+            fprintf(stderr, "%d", (array[k].first >> bit) & 1);
+        }
+        fprintf(stderr, " ");
+
+        /* הדפסת second */
+        for (bit = 7; bit >= 0; bit--) {
+            fprintf(stderr, "%d", (array[k].second >> bit) & 1);
+        }
+        fprintf(stderr, "\n");
+    }
+}
+			

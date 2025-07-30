@@ -171,13 +171,46 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
 							dc_count_mat(new_row_copy);
 						}
+						if(strcmp(token, ".extern")==0)
+						{
+							token2 = strtok(NULL, " \t\n\r");
+							if(token2==NULL)
+							{
+								error=1;
+								fprintf(stderr, "missing label in func extern\n");
+							}
+							if (is_valid_label_format(token2))
+								add_SEMEL(token2,2/*type for extern*/,0, SEMELS, semel_count, 1);
+							else
+							{
+								fprintf(stderr, "Invalid label\n");
+								error=1;
+							}
+						}
+						if(strcmp(token, ".entry")==0)
+					    	{
+							token2 = strtok(NULL, " \t\n\r");
+							if(token2==NULL)
+							{
+								error=1;
+								fprintf(stderr, "missing label in func extern\n");
+							}
+							found_command = 1;
+							if (is_valid_label_format(token2))
+								add_SEMEL(token2,3/*type for entry*/,0, SEMELS, semel_count, 0);
+							else
+							{
+								fprintf(stderr, "Invalid label\n");
+								error=1;
+							}
+						}
 					}
 				}
 				else
-					{
-						fprintf(stderr,"error, unknown command after label: %s\n", token);
-						error=1;
-					}
+				{
+					fprintf(stderr,"error, unknown command after label: %s\n", token);
+					error=1;
+				}
 				}
 			}
 		}
@@ -233,6 +266,11 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				if(strcmp(token, ".extern")==0)
 				{
 					token2 = strtok(NULL, " \t\n\r");
+					if(token2==NULL)
+					{
+						error=1;
+						fprintf(stderr, "missing label in func extern\n");
+					}
 					found_command = 1;
 					if (is_valid_label_format(token2))
 						add_SEMEL(token2,2/*type for extern*/,0, SEMELS, semel_count, 1);
@@ -245,6 +283,11 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				if(strcmp(token, ".entry")==0)
 				{
 					token2 = strtok(NULL, " \t\n\r");
+					if(token2==NULL)
+					{
+						error=1;
+						fprintf(stderr, "missing label in func extern\n");
+					}
 					found_command = 1;
 					if (is_valid_label_format(token2))
 						add_SEMEL(token2,3/*type for entry*/,0, SEMELS, semel_count, 0);

@@ -1,62 +1,45 @@
 #include "assembler.h"
 
-void add_number(int num, void** array, array_type type,int ARE) {
-	fprintf(stderr, "=== ENTERING add_number ===\n");
-    fprintf(stderr, "num=%d, array=%p, type=%d, ARE=%d\n", num, (void*)array, type, ARE);
+void add_number(int num, void** array, array_type type, int ARE) {
     void* temp;
     int* current_size;
     size_t item_size;
-
-	fprintf(stderr, "About to switch on type\n");
+    
     switch (type) {
         case TYPE_INSTRUCTION:
-	fprintf(stderr, "TYPE_INSTRUCTION case\n");
             current_size = &current_size_instaction_struct;
             item_size = sizeof(binary_code);
-		fprintf(stderr, "current_size_instaction_struct=%d, item_size=%zu\n", 
-                    current_size_instaction_struct, item_size);
             break;
         case TYPE_DIRECTIVE:
-	fprintf(stderr, "TYPE_DIRECTIVE case\n");
             current_size = &current_size_directive_struct;
             item_size = sizeof(binary_directive);
-	 fprintf(stderr, "current_size_directive_struct=%d, item_size=%zu\n", 
-                    current_size_directive_struct, item_size);
             break;
         default:
-		fprintf(stderr, "ERROR: Unknown type %d\n", type);
             return; 
     }
-	fprintf(stderr, "About to check if array is NULL\n");
-	if (*array == NULL) {
-	 fprintf(stderr, "Array is NULL, allocating new memory\n");
+    
+    if (*array == NULL) {
         temp = malloc(item_size);
     } else {
-	fprintf(stderr, "Array exists, reallocating. current_size=%d\n", *current_size);
         temp = realloc(*array, (*current_size + 1) * item_size);
     }
-	 fprintf(stderr, "Memory operation result: temp=%p\n", temp);
     
     if (temp == NULL) {
-	fprintf(stderr, "ERROR: Memory allocation failed!\n");
-    
         free(*array);
         *array = NULL;
         return;
     }
-     fprintf(stderr, "About to assign temp to array\n");
+    
     *array = temp;
-fprintf(stderr, "Assignment successful\n");
+    
     if (type == TYPE_INSTRUCTION) {
-    	binary_code* bc_array = (binary_code*)(*array);
-	bc_array[*current_size].first = (char)num;
-	bc_array[*current_size].second = (char)(ARE << 6);
-
-   } 
-else {
+        binary_code* bc_array = (binary_code*)(*array);
+        bc_array[*current_size].first = (char)num;
+        bc_array[*current_size].second = (char)(ARE << 6);
+    } else {
         binary_directive* bd_array = (binary_directive*)(*array);
-	bd_array[*current_size].first  = (char)(num >> 2);             
-	bd_array[*current_size].second = (char)((num & 0x3) << 6);
+        bd_array[*current_size].first  = (char)(num >> 2);             
+        bd_array[*current_size].second = (char)((num & 0x3) << 6);
     }
     
     (*current_size)++;
@@ -64,42 +47,25 @@ else {
 
 void add_two_numbers(int num1, int num2, binary_code** array) 
 {
-	fprintf(stderr, "=== ENTERING add_two_numbers ===\n");
-    fprintf(stderr, "num1=%d, num2=%d, array=%p\n", num1, num2, (void*)array);
-    	binary_code* temp;
-	
-	if (array == NULL) {
-        fprintf(stderr, "ERROR: array parameter is NULL\n");
+    binary_code* temp;
+    
+    if (array == NULL) {
         return;
     }
     
-    fprintf(stderr, "*array = %p\n", (void*)*array);
-    fprintf(stderr, "current_size_instaction_struct = %d\n", current_size_instaction_struct);
-
-	fprintf(stderr, "About to realloc\n");
-    	temp = (binary_code*) realloc(*array, (current_size_instaction_struct+1) * sizeof(binary_code));
-	fprintf(stderr, "realloc result: temp = %p\n", (void*)temp);
-    	if (temp == NULL) 
-	{
-        	fprintf(stderr, "Error: realloc failed\n");
-        	error=1;
-        	return;
-    	}
-	fprintf(stderr, "About to assign temp to *array\n");
-    	*array = temp;
-	fprintf(stderr, "Assignment successful\n");
+    temp = (binary_code*) realloc(*array, (current_size_instaction_struct+1) * sizeof(binary_code));
     
-    fprintf(stderr, "About to set values at index %d\n", current_size_instaction_struct);
-    	(*array)[current_size_instaction_struct].first = (char)(((num1 & 0x0F) << 4) | (num2 & 0x0F));
-    	(*array)[current_size_instaction_struct].second = 0;
-	fprintf(stderr, "Values set successfully\n");
+    if (temp == NULL) {
+        error=1;
+        return;
+    }
     
-    fprintf(stderr, "About to increment current_size_instaction_struct\n");
-    	current_size_instaction_struct++;
-	fprintf(stderr, "Increment successful, new size = %d\n", current_size_instaction_struct);
+    *array = temp;
     
-    fprintf(stderr, "=== EXITING add_two_numbers ===\n");
-
+    (*array)[current_size_instaction_struct].first = (char)(((num1 & 0x0F) << 4) | (num2 & 0x0F));
+    (*array)[current_size_instaction_struct].second = 0;
+    
+    current_size_instaction_struct++;
 }
 
 void  update_data_symbol_addresses(SEMEL** semels, int semel_count) 
