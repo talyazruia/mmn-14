@@ -25,9 +25,10 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 
 	while (fgets(row, sizeof(row), f))
 	{
+		sum_of_row++;
 		if (strchr(row, '\n') == NULL) 
 		{
-            		fprintf(stderr,"Error: line too long (more than %d characters)\n", MAX_LEN_OF_ROW);
+            		fprintf(stderr,"error in line %d: line too long (more than %d characters)\n",sum_of_row, MAX_LEN_OF_ROW);
 			error=1;
 			clear_row_arry();
 			continue;
@@ -61,7 +62,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				{
 					if (strcmp(label, macros[j]->name) == 0) 
 					{
-						fprintf(stderr, "error, label cant be macro name: %s\n", label);
+						fprintf(stderr, "error in line:%d, label cant be macro name: %s\n",sum_of_row, label);
 						error=1;
 						valid_label=0;
             					break;
@@ -77,7 +78,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					{
 						valid_label=0;
 						error=1;
-						fprintf(stderr,"error, label cannot be the name of a command: %s\n", label);
+						fprintf(stderr,"error in line:%d, label cannot be the name of a command: %s\n",sum_of_row, label);
 						break;
 					}
 				}
@@ -88,7 +89,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				if(token!=NULL)
 				{
 					if (strcmp(token, ".entry") == 0 || strcmp(token, ".extern") == 0) {
-						fprintf(stderr, "error, label cannot precede .entry or .extern: %s\n", label);
+						fprintf(stderr, "error in line:%d, label cannot precede .entry or .extern: %s\n",sum_of_row, label);
 						error = 1;
 						continue;
 					}
@@ -178,12 +179,13 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							{
 								error=1;
 								fprintf(stderr, "missing label in func extern\n");
+								continue;
 							}
 							if (is_valid_label_format(token2))
 								add_SEMEL(token2,2/*type for extern*/,0, SEMELS, semel_count, 1);
 							else
 							{
-								fprintf(stderr, "Invalid label\n");
+								fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
 								error=1;
 							}
 						}
@@ -193,14 +195,15 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							if(token2==NULL)
 							{
 								error=1;
-								fprintf(stderr, "missing label in func extern\n");
+								fprintf(stderr, "missing label in func entry\n");
+								continue;
 							}
 							found_command = 1;
 							if (is_valid_label_format(token2))
 								add_SEMEL(token2,1/*type for entry*/,1, SEMELS, semel_count, 0);
 							else
 							{
-								fprintf(stderr, "Invalid label\n");
+								fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
 								error=1;
 							}
 						}
@@ -208,7 +211,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				}
 				else
 				{
-					fprintf(stderr,"error, unknown command after label: %s\n", token);
+					fprintf(stderr,"error in line:%d, unknown command after label: %s\n", sum_of_row,token);
 					error=1;
 				}
 				}
@@ -270,13 +273,14 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					{
 						error=1;
 						fprintf(stderr, "missing label in func extern\n");
+						continue;
 					}
 					found_command = 1;
 					if (is_valid_label_format(token2))
 						add_SEMEL(token2,2/*type for extern*/,0, SEMELS, semel_count, 1);
 					else
 					{
-						fprintf(stderr, "Invalid label\n");
+						fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
 						error=1;
 					}
 				}
@@ -286,14 +290,15 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					if(token2==NULL)
 					{
 						error=1;
-						fprintf(stderr, "missing label in func extern\n");
+						fprintf(stderr, "error in line:%d missing label in func entry\n",sum_of_row);
+						continue;
 					}
 					found_command = 1;
 					if (is_valid_label_format(token2))
 						add_SEMEL(token2,1/*type for entry*/,1, SEMELS, semel_count, 0);
 					else
 					{
-						fprintf(stderr, "Invalid label\n");
+						fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
 						error=1;
 					}
 				}
@@ -301,7 +306,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 
 				if(!found_command)
 				{
-					fprintf(stderr,"error, func name is not valid\n");
+					/*fprintf(stderr,"error, func name is not valid\n");*/
 					error=1;
 				}
 			}	
@@ -327,14 +332,14 @@ int is_valid_label_format(const char* label)
     
     	if (len > 30) 
 	{
-        	fprintf(stderr, "Error: label too long (max 30 characters): %s\n", label);
+        	fprintf(stderr, "error in line %d: label too long (max 30 characters): %s\n", sum_of_row,label);
 		error=1;
         	return 0;
     	}
     
     	if (!isalpha(label[0])) 
 	{
-        	fprintf(stderr, "error, label must start with a letter: %s\n", label);
+        	fprintf(stderr, "error in line:%d, label must start with a letter: %s\n",sum_of_row, label);
 		error=1;
         	return 0;
     	}
@@ -343,7 +348,7 @@ int is_valid_label_format(const char* label)
 	{
         	if (!isalnum(label[i])) 
 		{
-            		fprintf(stderr, "error, label can contain only letters and digits: %s\n", label);
+            		fprintf(stderr, "error in line:%d, label can contain only letters and digits: %s\n", sum_of_row,label);
 			error=1;
             		return 0;
         	}
@@ -372,13 +377,13 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 			{
 				if(((*SEMELS)[j]->ex_en==1 && ex_en==2 )||((*SEMELS)[j]->ex_en==2 && ex_en==1))/*זה תווית אקסטרן ומה שאני מכניסה היא רגילה רק נשנה את הסוג ולא נוסיף כי היא כבר קיימת*/
 				{	
-					fprintf(stderr, "A regular label cannot be an extern label and vice versa.\n");
+					fprintf(stderr, "error in line:%d a regular label cannot be an extern label and vice versa.\n",sum_of_row);
 					error=1;
 					return;
 				}
 				else if(((*SEMELS)[j]->ex_en==1 && ex_en==0) || ((*SEMELS)[j]->ex_en==0 && ex_en==1))
 				{
-					fprintf(stderr, "error, A label cannot be both extern and entry.\n");/*תווית לא יכולה להיות גם אקסטרן וגם אנטרי*/
+					fprintf(stderr, "error in line:%d, a label cannot be both extern and entry.\n",sum_of_row);/*תווית לא יכולה להיות גם אקסטרן וגם אנטרי*/
 					error=1;
 					return;
 				}
@@ -396,7 +401,7 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 				}
 				else if((*SEMELS)[j]->ex_en==2 && ex_en==2)
 				{
-					fprintf(stderr, "error, label already defined: %s\n", label);
+					fprintf(stderr, "error in line:%d, label already defined: %s\n",sum_of_row, label);
 					error = 1;
 					return;
 				}

@@ -33,7 +33,7 @@ char *base4_convert(char a, char b, char* result)
 }
 
 
-void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int struct_type, int* semel_count)
+void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int struct_type, int* semel_count,int ic)
 {
 	char a, b;
 	char* result;
@@ -45,24 +45,25 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 	extern_label ** extern_labels1;
 	
 	if (array == NULL) {
-		fprintf(stderr,"Error: array is NULL\n");
+		fprintf(stderr,"error: array is NULL\n");
 		return;
 	}
 	
 	if (f2 == NULL) {
-		fprintf(stderr,"Error: file is NULL\n");
+		fprintf(stderr,"error: file is NULL\n");
 		return;
 	}
 	
 	result = (char *)malloc(6 * sizeof(char));
 	if (result == NULL) {
-		fprintf(stderr, "Error: Memory allocation failed\n");
+		fprintf(stderr, "error: Memory allocation failed\n");
 		return;
 	}
 	
 	
 			
 			switch (struct_type) {
+
 				case 1: {
 					IC=100;
 					bc_array = (binary_code**)array;
@@ -121,8 +122,9 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 				case 3: {
 					j = 0;					
 					extern_labels1 = (extern_label**)array;
-					while (j < *semel_count) {
-						{
+					while (j < *semel_count) 
+					{
+						
 							fprintf(f2, "%s ", (*extern_labels1)[j].name);
 							a = (char)(*extern_labels1)[j].addres;            
 							b = 0; 
@@ -131,7 +133,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 								fprintf(f2, "%c", result[k]);
 							}
 							fprintf(f2, "\n");
-						}
+						
 						j++;
 					}
 					break;	
@@ -155,10 +157,33 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 					}
 					break;	
 				}
+				case 5:
+				{
+					a=(char)ic;
+					b=0;
 				
-				default:
-					fprintf(stderr, "Error: Invalid struct_type\n");
+						base4_convert(a, b, result);
+						
+						for (k = 0; k<4; k++) {
+							fprintf(f2, "%c", result[k]);
+						}
+						fprintf(f2, " ");
+					a=(char)DC;
+					b=0;
+				
+						base4_convert(a, b, result);
+						
+						for (k = 0; k<4; k++) {
+							fprintf(f2, "%c", result[k]);
+						}
+						fprintf(f2, " ");
 					break;
+				}
+				default:
+				{
+					fprintf(stderr, "error: Invalid struct_type\n");
+					break;
+				}
 			}
 	
 	free(result);

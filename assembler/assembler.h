@@ -73,6 +73,8 @@ typedef struct {
 extern int error;
 extern int current_size_instaction_struct;
 extern int current_size_directive_struct;
+extern int sum_of_row;
+
 void add_to_extern_label(extern_label ** extern_labels,int* COUNT_OF_EXTERN_LABEL,char* str);
 int main(int argc, char * argv[]);
 FILE *end_file_name_as(int argc, char * argv[],int i);
@@ -81,7 +83,7 @@ void clear_row_arry();
 FILE *end_file_name(int argc, char * argv[], int i,int type); 
 FILE * macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i,macro*** macros_out, int* macro_count_out);
 void add_SEMEL(char* label, int type, int addres, SEMEL*** semels, int* semel_count,int ex_en);
-void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC,extern_label** extern_labels,int* count_of_extern_labels);
+void second_row_analysis(FILE * f , command cmd[]  ,SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC,extern_label** extern_labels,int* count_of_extern_labels);
 int add(char row[],SEMEL** SEMELS, int* semel_count, command cmd[], binary_code** array,extern_label** extern_labels,int* count_of_extern_labels);
 void data(char row[],binary_directive **struct_DC);
 void string(char row[],binary_directive **struct_DC);
@@ -104,7 +106,7 @@ int* valid_matrix(char* str,SEMEL** SEMELS, int* semel_count);
 int valid_SEMEL(char* str, SEMEL** SEMELS, int* semel_count);
 void to_binary(int opcode, int op1, int op2, binary_code** array);  
 void fix_commas_in_place(char *line);
-void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int struct_type, int* semel_count);
+void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int struct_type, int* semel_count,int ic);
 char *base4_convert(char a, char b, char* result);
 int is_valid_label_format(const char* label);
 #endif

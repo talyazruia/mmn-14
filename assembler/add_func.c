@@ -78,7 +78,7 @@ void  update_data_symbol_addresses(SEMEL** semels, int* semel_count)
 		if(semels[i]->ex_en==0 && semels[i]->addres==3)
 		{
 			error=1;
-			fprintf(stderr,"error,entry label has to be defined %s\n",semels[i]->name);
+			fprintf(stderr,"error in line :%d ,entry label has to be defined %s\n",sum_of_row,semels[i]->name);
 		}
         	if (semels[i]->type == 1) 
 		{
@@ -125,7 +125,7 @@ void fix_commas_in_place(char *line) {
         if (line[i] == ',') {
             if (!in_operand) {
                 error = 1;
-                fprintf(stderr, "Error: Unexpected comma (e.g., at start or double commas).\n");
+                fprintf(stderr, "error in line:%d: Unexpected comma (e.g., at start or double commas).\n",sum_of_row);
                 while (line[i] == ',') {
                     i++;
                 }
@@ -172,7 +172,7 @@ void fix_commas_in_place(char *line) {
     if (j >= 2 && temp[j - 2] == ',' && temp[j - 1] == ' ') {
         j -= 2;
         error = 1;
-        fprintf(stderr, "Error: Comma at end of line.\n");
+        fprintf(stderr, "error in line:%d Comma at end of line.\n",sum_of_row);
     }
 
     temp[j] = '\0';

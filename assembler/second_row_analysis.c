@@ -1,7 +1,7 @@
 #include "assembler.h"
 
 
-void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC,extern_label** extern_labels,int * count_of_extern_labels)
+void second_row_analysis(FILE * f , command cmd[]  ,SEMEL*** SEMELS, int* semel_count, binary_code ** array, binary_directive **struct_DC,extern_label** extern_labels,int * count_of_extern_labels)
 {
 	char row[MAX_LEN_OF_ROW];
 	char row_copy[MAX_LEN_OF_ROW];
@@ -10,9 +10,11 @@ void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEM
 	int i=0;
 	char *new_row;
 	char *colon;
+	int found=0;
 	
 	while (fgets(row, sizeof(row), f))
 	{
+		sum_of_row++;
 		if (strchr(row, '\n') == NULL) 
 		{
 			error=1;
@@ -45,6 +47,8 @@ void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEM
 					if(strcmp(token, cmd[i].name)==0)
 					{
 						add(new_row, *(SEMELS), semel_count, cmd, array, extern_labels, count_of_extern_labels);
+
+						found=1;
 						break;
 					}
 				}
@@ -64,8 +68,10 @@ void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEM
 				{
 					entry_extern( new_row );
 				}
-				else
+				else if(found==0){
 					error=1;
+					fprintf(stderr,"eror in line:%d unkown command",sum_of_row);
+				}
 			}
 		}
 		else
@@ -75,6 +81,7 @@ void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEM
 				if(strcmp(token, cmd[i].name)==0)
 				{
 					add(row, *(SEMELS),semel_count, cmd, array,extern_labels, count_of_extern_labels);
+					found=1;
 					break;
 				}
 			}
@@ -94,8 +101,10 @@ void second_row_analysis(FILE * f , command cmd[]  ,command1 cmd1[],SEMEL*** SEM
 			{
 				entry_extern(row );
 			}
-			else
-				error=1;
+			else if(found==0){
+					error=1;
+					fprintf(stderr,"error in line:%d unkown command\n",sum_of_row);
+				}
 		}
 	}
 }

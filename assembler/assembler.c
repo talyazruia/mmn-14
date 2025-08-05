@@ -4,6 +4,7 @@ int DC = 0;
 int error = 0;
 int current_size_instaction_struct = 0;
 int current_size_directive_struct = 0;
+int sum_of_row=0;
 
 
 int main(int argc, char * argv[])
@@ -52,7 +53,7 @@ int main(int argc, char * argv[])
 	int i=1;
 	int j=0;
 	int k=0;
-	int sum_of_rowes=0;
+	int ic;
 	if(argc==1)
 	{
 		fprintf(stderr,"error, ther no input files.\n");
@@ -68,6 +69,7 @@ int main(int argc, char * argv[])
 		error =0;
 		current_size_instaction_struct=0;
 		current_size_directive_struct=0;
+		sum_of_row=0;
 
 		if (SEMELS != NULL) 
 		{
@@ -96,7 +98,6 @@ int main(int argc, char * argv[])
 			struct_DC = NULL;
 		}
 
-		printf("Processing file: %s\n", argv[i]);
 		f1=end_file_name_as( argc, argv , i);
 		if(f1!=NULL)
 		{
@@ -105,24 +106,26 @@ int main(int argc, char * argv[])
 			f_used =macro_analysis(f1,cmd, cmd1, argc, argv, i, &macros, &macro_count);
 			if (f_used != NULL) 
 			{
+				sum_of_row=0;
 				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
 				update_data_symbol_addresses( SEMELS, &semel_count);
-				for(k=0; k<semel_count; k++)
+			/*semel print*/	for(k=0; k<semel_count; k++)
 				{
     					fprintf(stderr, "%s %d %d\n", SEMELS[k]->name, SEMELS[k]->addres, SEMELS[k]->ex_en);
 				}
 				fprintf(stderr, "%d %d\n", IC, DC); 
 				rewind(f_used);
-				sum_of_rowes=DC+IC;
+				ic=IC;
 				IC=100;
-				second_row_analysis(f_used , cmd  ,cmd1 , &SEMELS, &semel_count,  &array, &struct_DC,&extern_labels , &count_of_extern_labels);
+				sum_of_row=0;
+				second_row_analysis(f_used , cmd  , &SEMELS, &semel_count,  &array, &struct_DC,&extern_labels , &count_of_extern_labels);
 				print_binary_code_array(array, current_size_instaction_struct);
-				for(k = 0; k < count_of_extern_labels; k++)
+			/*extern print*/	for(k = 0; k < count_of_extern_labels; k++)
 				{
 					fprintf(stderr, "%s %d \n", extern_labels[k].name, extern_labels[k].addres);
 				}
 
-				if(error==0&&sum_of_rowes<256)
+				if(error==0&&ic+DC<256)
 				{
 				f2_ob=end_file_name( argc,argv,i, 2);
 				if(f2_ob==NULL)
@@ -130,9 +133,10 @@ int main(int argc, char * argv[])
 					error=1;
 					return 0;
 				}
-
-				BinaryToBase4((void**)&array,argc, argv, i, f2_ob, 1,&semel_count);
-				BinaryToBase4((void**)&struct_DC,argc, argv, i, f2_ob, 2,&semel_count);
+				BinaryToBase4((void**)&array,argc, argv, i, f2_ob, 5,&semel_count,ic-100);
+				fprintf(f2_ob, "\n");
+				BinaryToBase4((void**)&array,argc, argv, i, f2_ob, 1,&semel_count,0);
+				BinaryToBase4((void**)&struct_DC,argc, argv, i, f2_ob, 2,&semel_count,0);
 				fclose(f2_ob);
 
 				f3_ex=end_file_name( argc,argv,i, 3);
@@ -141,7 +145,7 @@ int main(int argc, char * argv[])
 					error=1;
 					return 0;
 				}
-				BinaryToBase4((void**)&extern_labels,argc, argv, i, f3_ex, 3,&count_of_extern_labels);
+				BinaryToBase4((void**)&extern_labels,argc, argv, i, f3_ex, 3,&count_of_extern_labels,0);
 				fclose(f3_ex);
 
 				f4_en=end_file_name( argc,argv,i, 4);
@@ -150,14 +154,14 @@ int main(int argc, char * argv[])
 					error=1;
 					return 0;
 				}
-				BinaryToBase4((void**)SEMELS,argc, argv, i, f4_en, 4,&semel_count);
+				BinaryToBase4((void**)SEMELS,argc, argv, i, f4_en, 4,&semel_count,0);
 				fclose(f4_en);
 
 				fclose(f_used);
 				}
 				else
 				{
-					printf("Errors found - skipping file generation for %s\n", argv[i]);
+					printf("errors found - skipping file generation for %s\n", argv[i]);
 				}
 				if (error != 0) 
 				{
@@ -172,14 +176,11 @@ int main(int argc, char * argv[])
 				}
 			} 			
 			else 
-			{
-				printf("Error processing macros for %s\n", argv[i]);
 				continue;
-			}
 		}
 		else
 		{
-			printf("Could not open source file for %s\n", argv[i]);
+			fprintf(stderr,"error Could not open source file for %s\n", argv[i]);
 		}
 	}
 
