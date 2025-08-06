@@ -170,7 +170,7 @@ int main(int argc, char * argv[])
 				{
 					fprintf(stderr ,"errors found - skipping file generation for %s\n", argv[i]);
 				}
-				if (error != 0) 
+				/*if (error != 0) 
 				{
 					char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(".am") + 1);
 					if (temp_file_name != NULL) 
@@ -180,7 +180,7 @@ int main(int argc, char * argv[])
 						remove(temp_file_name);
 						free(temp_file_name);
 					}
-				}
+				}*/
 			} 			
 			else 
 				continue;

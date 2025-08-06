@@ -4,15 +4,30 @@
 #include "assembler.h"
 
 /*
- * Fixes the placement of commas in a given line.
- * Removes unexpected commas (e.g., double commas, comma at start/end),
- * and formats the operands correctly with single commas and spaces.
- * If errors are found, sets the global 'error' flag and reports the issue.
+ * Function: check_commas
+ * ---------------------------------------
+ * Checks for comma-related syntax errors in an assembly line, with support for
+ * special formatting exceptions used in the `.mat` directive.
+ *
+ * The function identifies the following types of errors:
+ *   - Unexpected commas (e.g., at the start or multiple consecutive commas).
+ *   - Missing commas between operands (unless explicitly allowed for `.mat`).
+ *   - A trailing comma at the end of the line.
+ *
+ * The function does not modify the input line. It prints error messages to stderr
+ * for each issue found.
  *
  * Parameters:
- *   line - the input string to be validated and cleaned in place.
+ *   line    - A null-terminated string containing the line to check.
+ *   is_mat  - A flag indicating whether the line is a `.mat` directive.
+ *             If non-zero, the function ignores missing commas after square brackets.
+ *
+ * Returns:
+ *   1 if no syntax errors were found,
+ *   0 if any syntax errors were detected.
  */
-void fix_commas_in_place(char *line);
+int check_commas(const char *line, int is_mat);
+
 
 /*
  * Updates the addresses of all data symbols in the symbol table.

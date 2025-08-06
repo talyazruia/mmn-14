@@ -7,13 +7,13 @@
 void ic_count_1_arg(char* row);
 
 /* Increments IC based on two-operand instruction */
-void ic_count_2_arg(char* row);
+int ic_count_2_arg(char* row);
 
 /* Increments DC for each number in a .data directive */
-void dc_count_data(char* row);
+int dc_count_data(char* row);
 
 /* Increments DC based on the length of a string in a .string directive */
-void dc_count_string(char* row);
+int dc_count_string(char* row);
 
 /* Increments DC based on the size and values of a matrix in a .mat directive */
 void dc_count_mat(char* row);

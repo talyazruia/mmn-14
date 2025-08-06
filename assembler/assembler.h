@@ -49,8 +49,8 @@ typedef struct {
 
 /* Binary code for instructions */
 typedef struct {
-	char first;   /* First byte */
-	char second;  /* Second byte */
+	unsigned char first;   /* First byte */
+	unsigned char second;  /* Second byte */
 } binary_code;
 
 /* Binary code for data directives */

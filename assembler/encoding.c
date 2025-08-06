@@ -277,8 +277,9 @@ void add_number(int num, void** array, array_type type, int ARE)
 	{
         	/* Add to instruction array */
         	binary_code* bc_array = (binary_code*)(*array);      /* Cast to instruction array type */
-        	bc_array[*current_size].first = (char)num;           /* Store number in first byte */
-        	bc_array[*current_size].second = (char)(ARE << 6);   /* Store ARE flag in upper 2 bits of second byte */
+        	bc_array[*current_size].first = (unsigned char)((signed char)num);
+          /* Store number in first byte */
+        	bc_array[*current_size].second = (unsigned char)(ARE << 6);   /* Store ARE flag in upper 2 bits of second byte */
 		IC++;  /* Increment global instruction counter */
     	} 
 	else 

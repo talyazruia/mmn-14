@@ -12,7 +12,8 @@ void second_row_analysis(FILE * f , command cmd[]  ,SEMEL*** SEMELS, int* semel_
 	int i=0;                                        /* Loop counter for command array iterations */
 	char *new_row;                                  /* Pointer to part of row after label (after colon) */
 	char *colon;                                    /* Pointer to colon character in label definition */
-	int found=0;                                    /* Flag indicating if valid command was found (1=found, 0=not found) */
+	int found=0;
+                                    /* Flag indicating if valid command was found (1=found, 0=not found) */
 	
 	/* Second pass: process each line from the input file for code generation */
 	while (fgets(row, sizeof(row), f))
@@ -113,89 +114,109 @@ void second_row_analysis(FILE * f , command cmd[]  ,SEMEL*** SEMELS, int* semel_
 
 int is_valid_number(char *str, int mode) 
 {
-    	char *endptr;                               /* Pointer to end of parsed number (for strtol) */
-    	long val;                                   /* Parsed number value */
-	char *digit_ptr;                            /* Pointer for digit validation */
+	char *src, *dst, *endptr;
+	long val;
 
-    	/* Check for null pointer */
-    	if (str == NULL)
-        	return 0;                           /* Return invalid */
-	/* Mode 0: Immediate operand - must start with # */
-    	if (mode == 0) 
+	if (str == NULL)
+		return 0;
+
+	/* Trim leading whitespace */
+	while (isspace((unsigned char)*str))
+		str++;
+
+	/* Move trimmed string to the beginning (overwrite original) */
+	src = str;
+	dst = str;
+	while (*src != '\0')
+		*dst++ = *src++;
+	*dst = '\0';
+
+	/* Now remove trailing whitespace */
+	dst = str + strlen(str) - 1;
+	while (dst >= str && isspace((unsigned char)*dst))
+		*dst-- = '\0';
+
+	/* Mode 0: check '#' at beginning, and no space after it */
+	if (mode == 0) 
 	{
-        	if (*str != '#')
-            		return 0;                   /* Return invalid if no # prefix */
-        	str++;                              /* Skip the # character */
-    	}
-	/* Skip leading whitespace */
-    	while (isspace((unsigned char)*str))
-        	str++;
+		if (*str != '#')
+			return 0;
+
+		if (isspace((unsigned char)str[1])) /* space after # not allowed */
+			return 0;
+
+		/* Shift string left to remove '#' */
+		memmove(str, str + 1, strlen(str));  /* including null terminator */
+	}
+
 	/* Handle optional sign */
-    	if (*str == '+' || *str == '-') 
-	{	/* Mode 2: Unsigned numbers - negative not allowed */
-        	if (mode == 2 && *str == '-') 
-            		return 0;                   /* Return invalid for negative in unsigned mode */
-        	str++;                              /* Skip the sign character */
-    	}
-	/* Check if string is empty after processing prefix and sign */
-    	if (*str == '\0')
-        	return 0;                           /* Return invalid if no digits */
-	/* Validate that all remaining characters are digits */
-    	digit_ptr = str;
-    	while (*digit_ptr) 
-	{	/* Allow trailing whitespace */
-        	if (isspace((unsigned char)*digit_ptr)) 
-			break;                      /* Stop validation at whitespace */
-        	/* Check if character is a digit */
-        	if (!isdigit((unsigned char)*digit_ptr))
-            		return 0;               /* Return invalid if non-digit found */
-        	digit_ptr++;
-    	}
-	/* For modes 1 and 2: Additional validation of number range */
-    	if (mode == 1 || mode == 2) 
+	if (*str == '+' || *str == '-') 
 	{
-        	val = strtol(str, &endptr, 10);     /* Parse string to long integer */
-        	/* Check if no digits were parsed */
-		if (str == endptr) 
-            		return 0;                   /* Return invalid if no conversion occurred */
-            	/* Skip trailing whitespace after number */
+		if (mode == 2 && *str == '-')  /* unsigned can't be negative */
+			return 0;
+	}
+
+	/* Validate all characters */
+	src = str;
+	while (*src && !isspace((unsigned char)*src)) 
+	{
+		if (*src == '+' || *src == '-') 
+		{
+			src++; /* allow sign */
+			continue;
+		}
+		if (!isdigit((unsigned char)*src))
+			return 0;
+		src++;
+	}
+
+	/* Check for extra characters after number (excluding whitespace) */
+	while (*src)
+	{
+		if (!isspace((unsigned char)*src))
+			return 0;
+		src++;
+	}
+
+	/* Final parse to check range */
+	if (mode == 1 || mode == 2) 
+	{
+		val = strtol(str, &endptr, 10);
+		if (str == endptr)
+			return 0;
+
+		/* Skip trailing whitespace */
 		while (isspace((unsigned char)*endptr))
-            		endptr++;
-            	/* Check for extra characters after number */
-		if (*endptr != '\0') 
-            		return 0;                   /* Return invalid if extra characters found */
-            	/* Check if number is within integer range */
+			endptr++;
+
+		if (*endptr != '\0')
+			return 0;
+
 		if (val < INT_MIN || val > INT_MAX)
-            		return 0;                   /* Return invalid if out of range */
-    	}
-	return 1;                                   /* Return valid */
+			return 0;
+	}
+	return 1;
 }
-
-
-#include <string.h>
-#include <ctype.h>
 
 /* Check if the given string represents a valid register (r0 to r7), ignoring surrounding spaces */
 int reg(char* str)
 {
-	char* start;
 	char* end;
 	int len;
 
 	if (str == NULL)
 		return 0;
-
 	/* Trim leading spaces */
-	while (isspace(*str)) str++;
-
+	while (isspace(*str)) 
+		str++;
 	/* Trim trailing spaces */
 	len = strlen(str);
 	end = str + len - 1;
-	while (end > str && isspace(*end)) {
+	while (end > str && isspace(*end)) 
+	{
 		*end = '\0';
 		end--;
 	}
-
 	/* After trimming, check the register format */
 	if (str[0] != 'r')
 		return 0;
@@ -203,10 +224,8 @@ int reg(char* str)
 		return 0;
 	if (str[2] != '\0')
 		return 0;
-
 	return 1;
 }
-
 
 int* valid_matrix(char* str, SEMEL** SEMELS, int* semel_count)
 {
@@ -242,9 +261,6 @@ int* valid_matrix(char* str, SEMEL** SEMELS, int* semel_count)
 	return NULL;
 }
 
-#include <string.h>
-#include <ctype.h>
-
 int valid_SEMEL(char* str, SEMEL** SEMELS, int* semel_count)
 {
 	int i = 0;
@@ -252,18 +268,16 @@ int valid_SEMEL(char* str, SEMEL** SEMELS, int* semel_count)
 	char* end;
 
 	/* Trim leading spaces */
-	while (isspace(*str)) {
+	while (isspace(*str))
 		str++;
-	}
-
 	/* Trim trailing spaces */
 	len = strlen(str);
 	end = str + len - 1;
-	while (end > str && isspace(*end)) {
+	while (end > str && isspace(*end)) 
+	{
 		*end = '\0';
 		end--;
 	}
-
 	/* Search through symbol table for matching name */
 	while (i < *semel_count)
 	{
@@ -278,11 +292,9 @@ int valid_SEMEL(char* str, SEMEL** SEMELS, int* semel_count)
 		}
 		i++;
 	}
-
 	error = 1;
 	return -1;
 }
-
 
 void add_to_extern_label(extern_label ** extern_labels,int* COUNT_OF_EXTERN_LABEL,char* str)
 {
@@ -342,8 +354,10 @@ int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cm
 	int num_operands = 0;                       /* Count of operands found */
 	int required_operands = 0;                  /* Number of operands required by command */
 	int found_operand = 0;                      /* Flag indicating if operand was successfully parsed */
-
-	command = strtok(row, " ");/* Extract command name from row */
+	
+	if(!(check_commas(row,0)))
+		return 0;
+	command = strtok(row, " \t\n\r");/* Extract command name from row */
 	if (command == NULL) 
 	{
 		fprintf(stderr, "error in line:%d Empty command\n", sum_of_row);
@@ -362,7 +376,7 @@ int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cm
 	}
 	if (opcode == -1) /* Validate that command was found */
 	{
-		fprintf(stderr, "error in line:%d Unknown command %s\n", sum_of_row, command);
+		fprintf(stderr, "error in line:%d Unknown command @%s\n", sum_of_row, command);
 		error = 1;                          /* Set global error flag */
 		return 0;
 	}
@@ -420,7 +434,7 @@ int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cm
 		{	/* Validate that immediate addressing is allowed for this command */
 			if (opcode == 1 || opcode == 12 || opcode == 13) 
 			{
-				op1_val = atoi(op1 + 1);    /* Extract number after # */
+				op1_val = atoi(op1);    /* Extract number after # */
 				op1_type = 0;               /* Addressing mode 0: immediate */
 				flag1 = 0;                  /* Flag for immediate processing */
 				found_operand = 1;          /* Mark operand as successfully parsed */
@@ -479,7 +493,7 @@ int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cm
 		{	/* Validate that immediate addressing is allowed as destination */
 			if (opcode == 1 || opcode == 13) 
 			{
-				op2_val = atoi(op2 + 1);    /* Extract number after # */
+				op2_val = atoi(op2);    /* Extract number after # */
 				op2_type = 0;               /* Addressing mode 0: immediate */
 				/* Set flag based on first operand type for register optimization */
 				flag2 = (op1_type == 0) ? 0 : 1;
@@ -553,8 +567,17 @@ int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cm
 		} 
 		else if (op1_type == 0)/* Immediate operand */
 			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
-		else /* Register operand */
+		else if (op1_type ==3)/* Register operand */
 			add_two_numbers(0, op1_val, array);
+		else if(op1_type == 2)/*operand is matrix */
+		{
+			if (SEMELS[op1_mat[0]]->ex_en == 1)
+				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op1);
+			add_number(SEMELS[op1_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op1_mat[0]]->ex_en);
+			add_two_numbers(op1_mat[1], op1_mat[2], array); /* Matrix indices */
+			free(op1_mat);                          /* Clean up matrix info */
+			op1_mat = NULL;
+		}
 	} 
 	else if (flag1 + flag2 == 0) /* Both operands are registers - can be packed in one word */
 		add_two_numbers(op1_val, op2_val, array);
@@ -674,7 +697,8 @@ void mat(char row[], binary_directive** struct_DC)
 	char *token;                                /* Pointer to data tokens */
 
 	/* Fix comma formatting in the input row */
-	fix_commas_in_place(row);
+	if(!check_commas(row,1))
+		return;
 	/* Find first opening bracket for row dimension */
 	open1 = strchr(row, '[');
 	if (!open1) 
