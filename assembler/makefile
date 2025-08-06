@@ -1,28 +1,24 @@
-assembler: assembler.o chang_file_name.o macro_analysis.o row_analysis.o command_analysis.o IC_DC_counter.o add_func.o second_row_analysis.o binaryToBase4.o
-	gcc -ansi -pedantic -Wall chang_file_name.o  macro_analysis.o row_analysis.o command_analysis.o assembler.o IC_DC_counter.o add_func.o second_row_analysis.o binaryToBase4.o -o assembler
+assembler: assembler.o chang_file_name.o macro_analysis.o row_analysis.o validation.o second_row_analysis.o encoding.o
+	gcc -ansi -pedantic -Wall chang_file_name.o macro_analysis.o row_analysis.o assembler.o validation.o second_row_analysis.o encoding.o -o assembler
 
-assembler.o: assembler.c assembler.h
+assembler.o: assembler.c assembler.h validation.h chang_file_name.h row_analysis.h second_row_analysis.h encoding.h
 	gcc -c -ansi -pedantic -Wall assembler.c -o assembler.o
 
-chang_file_name.o: chang_file_name.c assembler.h
+chang_file_name.o: chang_file_name.c chang_file_name.h assembler.h
 	gcc -c -ansi -pedantic -Wall chang_file_name.c -o chang_file_name.o
 
-macro_analysis.o:macro_analysis.c assembler.h
+macro_analysis.o: macro_analysis.c chang_file_name.h assembler.h
 	gcc -c -ansi -pedantic -Wall macro_analysis.c -o macro_analysis.o
 
-row_analysis.o:row_analysis.c assembler.h
+row_analysis.o: row_analysis.c row_analysis.h validation.h second_row_analysis.h assembler.h
 	gcc -c -ansi -pedantic -Wall row_analysis.c -o row_analysis.o
 
-command_analysis.o:command_analysis.c assembler.h
-	gcc -c -ansi -pedantic -Wall command_analysis.c -o command_analysis.o
+validation.o: validation.c validation.h assembler.h
+	gcc -c -ansi -pedantic -Wall validation.c -o validation.o
 
-IC_DC_counter.o:IC_DC_counter.c assembler.h
-	gcc -c -ansi -pedantic -Wall IC_DC_counter.c -o IC_DC_counter.o
-
-add_func.o:add_func.c assembler.h
-	gcc -c -ansi -pedantic -Wall add_func.c -o add_func.o
-
-second_row_analysis.o:second_row_analysis.c assembler.h
+second_row_analysis.o: second_row_analysis.c second_row_analysis.h encoding.h validation.h row_analysis.h assembler.h
 	gcc -c -ansi -pedantic -Wall second_row_analysis.c -o second_row_analysis.o
-binaryToBase4.o:binaryToBase4.c assembler.h
-	gcc -c -ansi -pedantic -Wall binaryToBase4.c -o binaryToBase4.o
+
+encoding.o: encoding.c encoding.h assembler.h
+	gcc -c -ansi -pedantic -Wall encoding.c -o encoding.o
+

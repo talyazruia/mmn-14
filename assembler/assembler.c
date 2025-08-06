@@ -1,4 +1,11 @@
+
 #include "assembler.h"
+#include "validation.h"
+#include "chang_file_name.h"
+#include "row_analysis.h"
+#include "second_row_analysis.h"
+#include "encoding.h"
+
 int IC = 100;
 int DC = 0;
 int error = 0;
@@ -113,7 +120,7 @@ int main(int argc, char * argv[])
 				{
     					fprintf(stderr, "%s %d %d\n", SEMELS[k]->name, SEMELS[k]->addres, SEMELS[k]->ex_en);
 				}
-				fprintf(stderr, "%d %d\n", IC, DC); 
+			/*IC DCprint*/fprintf(stderr, "%d %d\n", IC, DC); 
 				rewind(f_used);
 				ic=IC;
 				IC=100;
@@ -161,7 +168,7 @@ int main(int argc, char * argv[])
 				}
 				else
 				{
-					printf("errors found - skipping file generation for %s\n", argv[i]);
+					fprintf(stderr ,"errors found - skipping file generation for %s\n", argv[i]);
 				}
 				if (error != 0) 
 				{
