@@ -6,7 +6,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 {
 	char row[MAX_LEN_OF_ROW+2];                     /* Buffer for reading each line from file (+1 for \n, +1 for \0) */
 	char row_copy[MAX_LEN_OF_ROW+2];                /* Copy of row for tokenization (strtok modifies original) */
-	char new_row_copy[MAX_LEN_OF_ROW + 2];          /* Another copy for processing commands after label removal */
 	char label[31];                                 /* Buffer to store extracted label name (max 30 chars + null) */
 	char *token;                                    /* Pointer to current token from strtok */
 	char *token2;                                   /* Pointer to second token (used for .entry/.extern arguments) */
@@ -22,7 +21,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 	char* cmd_2_arg[] = {"mov","cmp","add", "sub","lea"};      /* Array of commands that take 2 arguments */
 	char * cmd_1_arg[]={"not","clr","inc","dec","jmp","bne","red","prn","jsr"};  /* Array of commands that take 1 argument */
 	char * cmd_0_arg[]={"rts","stop"};              /* Array of commands that take 0 arguments */
-	int commas=0; 
 	
 
 	/* Main loop: process each line from the input file */
@@ -140,23 +138,20 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							{
 								if(strcmp(token, cmd_2_arg[i])==0)
 								{	/* Create safe copy for processing */
-									strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-									new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
-									if(!ic_count_2_arg(new_row_copy))   /* Count instruction words needed */
-										commas=1;
+									/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+									new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
+									ic_count_2_arg(new_row);   /* Count instruction words needed */
 									break;
 								}
 							}
-							if(commas)
-								break;
 							/* Process 1-argument commands */
 				 			for (j = 0; j < 9; j++)         /* cmd_1_arg array has 9 commands */
 							{
 								if (strcmp(token, cmd_1_arg[j]) == 0) 
 								{	/* Create safe copy for processing */
-									strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-									new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
-									ic_count_1_arg(new_row_copy);   /* Count instruction words needed */
+									/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+									new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
+									ic_count_1_arg(new_row);   /* Count instruction words needed */
 									break;
 								}
 							}
@@ -172,25 +167,23 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							/* Process .data directive */
 							if(strcmp(token, ".data") == 0) 
 							{	/* Create safe copy for processing */
-								strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
-								if(!dc_count_data(new_row_copy))    /* Count data words needed */
-									break;
+								/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
+								dc_count_data(new_row);    /* Count data words needed */
 							}
 							/* Process .string directive */
 							if(strcmp(token, ".string") == 0) 
 							{	/* Create safe copy for processing */
-								strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
-								if(!dc_count_string(new_row_copy))  /* Count string characters needed */
-									break;
+								/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
+								dc_count_string(new_row);  /* Count string characters needed */
 							}
 							/* Process .mat directive */
 							if(strcmp(token, ".mat") == 0) 
 							{	/* Create safe copy for processing */
-								strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';
-								dc_count_mat(new_row_copy);     /* Count matrix elements needed */
+								/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
+								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
+								dc_count_mat(new_row);     /* Count matrix elements needed */
 							}
 							/* Process .extern directive */
 							if(strcmp(token, ".extern")==0)
@@ -251,13 +244,10 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					if(strcmp(token, cmd_2_arg[i])==0)
 					{
 						found_command=1;        /* Mark command as found */
-						if(!ic_count_2_arg(row))/* Count instruction words needed */
-							commas=1;
+						ic_count_2_arg(row); /* Count instruction words needed */
 						break;
 					}
 				}
-				if(commas)
-					break;
 				/* Check for 1-argument commands if not already found */
 				if(!found_command) 
 				{
@@ -287,15 +277,13 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				/* Check for .data directive */
 				if(strcmp(token, ".data") == 0) 
 				{
-					if(!dc_count_data(row))             /* Count data words needed */
-						break;
+					dc_count_data(row);             /* Count data words needed */
 					found_command = 1;              /* Mark command as found */
 				}
 				/* Check for .string directive */
 				if(strcmp(token, ".string") == 0) 
 				{
-					if(!dc_count_string(row))           /* Count string characters needed */
-						break;
+					dc_count_string(row);          /* Count string characters needed */
 					found_command = 1;              /* Mark command as found */
 				}
 				/* Check for .mat directive */
@@ -536,7 +524,7 @@ void ic_count_1_arg(char* row)
         	IC += 2;                        /* Regular addressing needs 2 words total */
 }
 
-int ic_count_2_arg(char* row) 
+void ic_count_2_arg(char* row) 
 {
     	char* op1;                                  /* Pointer to first operand token */
     	char* op2;                                  /* Pointer to second operand token */
@@ -554,7 +542,7 @@ int ic_count_2_arg(char* row)
     	{
         	error = 1;                              /* Set global error flag */
         	IC += 1;                                /* Add 1 word for incomplete instruction */
-        	return 0;
+        	return;
     	}
 	/* Remove leading whitespace from operands */
     	while (*op1 == ' ' || *op1 == '\t') 
@@ -576,32 +564,31 @@ int ic_count_2_arg(char* row)
     	if (reg(op1) && reg(op2))
         	ic_extra -= 1;                          /* Save 1 word when both are registers */
 	IC += ic_extra;                             /* Add all additional words to instruction counter */
-	return 1;
 }
 
-int dc_count_data(char* row) 
+
+void dc_count_data(char* row) 
 {
-	char* op1;                              /* Pointer to current data token */
-    	
-	if(!check_commas(row,0))                       /* Fix comma formatting in the row */
-		return 0;
-    	op1 = strtok(row, " \t");               /* Skip .data command */
-    	op1 = strtok(NULL, ",\n\r");           /* Get first data value */
-    	
-    	/* Process each data value separated by commas */
-    	while (op1 != NULL) 
-	{	/* Remove leading whitespace from current token */
-		while (*op1 == ' ' || *op1 == '\t') 
-			op1++;
-		/* If token is not empty, count it as one data word */
-		if(*op1!='\0')
-        		DC++;                       /* Increment data counter */
-        	op1 = strtok(NULL, " ,");           /* Get next data value */
-    	}
-	return 1;
+	char copy_row[256];		/* Local buffer for a safe copy of the row */
+	char* p;				/* Pointer for iterating over the copied row */
+
+	strcpy(copy_row, row);	/* Copy the input line to avoid modifying the original */
+
+	p = copy_row;			/* Initialize pointer to the beginning of the copied row */
+	while (*p != '\n' && *p != '\0') 
+	{
+		if (*p == ',') 
+		{
+			DC++;			/* Count each comma as a separator between values */
+		}
+		p++;				/* Move to the next character */
+	}
+
+	DC++;					/* Account for the last (or only) value after the last comma */
 }
 
-int dc_count_string(char* row) 
+
+void dc_count_string(char* row) 
 {
 	char* command;                              /* Pointer to command token */
    	char* op1;                                  /* Pointer to string operand */
@@ -609,28 +596,27 @@ int dc_count_string(char* row)
     	char* end_string;                           /* Pointer to closing quote */
     	int string_length;                          /* Length of string content */
     
-	if(!check_commas(row,0))                       /* Fix comma formatting in the row */
-		return 0;
+	/*if(!check_commas(row,0))*/                       /* Fix comma formatting in the row */
+		/*return 0;*/
     	command = strtok(row, " \t");               /* Skip .string command */
     	if(command == NULL)
-        	return 0;
+        	return;
     	op1 = strtok(NULL, "\n\r");                /* Get rest of line as string operand */
     	if (op1 == NULL) 
-        	return 0;
+        	return;
     	/* Remove leading whitespace */
     	while (*op1 == ' ' || *op1 == '\t') 
 		op1++;
     	/* Find string content between regular double quotes only */
     	start_string = strchr(op1, '"');           /* Find first double quote */
     	if (start_string == NULL) 
-        	return 0;
+        	return;
     	end_string = strchr(start_string + 1, '"'); /* Find closing double quote */
     	if (end_string == NULL) 
-        	return 0;
+        	return;
     	/* Calculate string length between quotes */
     	string_length = (end_string - start_string - 1);
     	DC += string_length + 1;  /* Add string length + 1 for null terminator '\0' */
-	return 1;
 }
 
 void dc_count_mat(char* row) 
@@ -694,5 +680,5 @@ void dc_count_mat(char* row)
 			data = strtok(NULL, " ,\t\n\r");  /* Get next data token */
 		}
 	DC+= data_count;                        /* Add actual data count to data counter */
-	}	
+	}
 }

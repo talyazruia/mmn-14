@@ -68,5 +68,7 @@ void mat(char row[], binary_directive **struct_DC);
  */
 void entry_extern(char row[]);
 
+int string_commas_check(char* row);
+
 #endif
 

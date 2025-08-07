@@ -60,7 +60,7 @@ void second_row_analysis(FILE * f , command cmd[]  ,SEMEL*** SEMELS, int* semel_
 				}
 				/* Process .string directive */
 				if(strcmp(token, ".string")==0)
-					string(row, struct_DC);     /* Generate binary data for string */
+					string(new_row, struct_DC);     /* Generate binary data for string */
 				/* Process .mat directive */
 				else if(strcmp(token, ".mat")==0)
 					mat(new_row , struct_DC);   /* Generate binary data for matrix */
@@ -233,7 +233,8 @@ int* valid_matrix(char* str, SEMEL** SEMELS, int* semel_count)
 	char r1[31];                                /* Buffer for first register name */
 	char r2[31];                                /* Buffer for second register name */
 	int *result = NULL;                         /* Array to return: [symbol_index, reg1_num, reg2_num] */
-	int i;                                      /* Symbol index in symbol table */
+	int i;  
+	int matched;                                    /* Symbol index in symbol table */
 
 	result = (int*)malloc(3 * sizeof(int));/* Allocate memory for result array */
 	if (result == NULL)
@@ -241,9 +242,15 @@ int* valid_matrix(char* str, SEMEL** SEMELS, int* semel_count)
 		fprintf(stderr, "Error: memory allocation failed\n");
 		return NULL;
 	}
-	/* Parse matrix syntax: name[reg1][reg2] with flexible whitespace */
-	sscanf(str, " %30[^[] [ %30[^] \t] ] [ %30[^] \t] ]", array_name, r1, r2);
-	{	/* Validate that matrix name exists in symbol table */
+	/* Parse matrix syntax: name[reg1][reg2] with flexible whitespace */ 
+	matched = sscanf(str, " %30[^[] [ %30[^] \t] ] [ %30[^] \t] ]", array_name, r1, r2);
+	if (matched != 3) {
+    		free(result);
+		return NULL;
+		error=1;
+	}
+
+	{    /* Validate that matrix name exists in symbol table */
 		i = valid_SEMEL(array_name, SEMELS, semel_count);
 		if (i != -1)
 		{
@@ -355,7 +362,7 @@ int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cm
 	int required_operands = 0;                  /* Number of operands required by command */
 	int found_operand = 0;                      /* Flag indicating if operand was successfully parsed */
 	
-	if(!(check_commas(row,0)))
+	if(!(check_commas(row)))
 		return 0;
 	command = strtok(row, " \t\n\r");/* Extract command name from row */
 	if (command == NULL) 
@@ -376,7 +383,7 @@ int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cm
 	}
 	if (opcode == -1) /* Validate that command was found */
 	{
-		fprintf(stderr, "error in line:%d Unknown command @%s\n", sum_of_row, command);
+		fprintf(stderr, "error in line:%d Unknown command %s\n", sum_of_row, command);
 		error = 1;                          /* Set global error flag */
 		return 0;
 	}
@@ -632,9 +639,11 @@ void data(char row[],binary_directive** struct_DC)
     	char* op1;                                  /* Pointer to current data value token */
 	int value;                                  /* Parsed integer value */
 	
+	if(!(check_commas(row)))
+		return; 
     	op1 = strtok(row, " ");                     /* Skip .data command */
     	op1 = strtok(NULL, ",");                    /* Get first data value */
-    	
+	
     	/* Process each comma-separated data value */
 	while (op1 != NULL) 
 	{	/* Remove leading whitespace from current token */
@@ -658,23 +667,13 @@ void string(char row[],binary_directive** struct_DC)
 {
 	char *start_quote, *end_quote;              /* Pointers to opening and closing quotes */
 	int i;                                      /* Loop counter for character processing */
-
+	if(!(string_commas_check(row)))
+		return;
 	/* Locate the first double quote in the row */
 	start_quote = strchr(row, '"');
-	if (start_quote == NULL)
-        {
-        	fprintf(stderr, "in line %d error,Missing opening quote for string\n",sum_of_row);
-        	error = 1;                      /* Set global error flag */
-        	return;
-    	}	
+		
 	/* Locate the closing double quote */
 	end_quote = strchr(start_quote + 1, '"');
-	if (end_quote == NULL) 
-	{
-		fprintf(stderr, "in line %d error,Missing closing quote for string\n",sum_of_row);
-		error = 1;                          /* Set global error flag */
-		return;
-	}
 	/* Process each character between the quotes */
 	if(end_quote != NULL&&start_quote != NULL)
 	{
@@ -688,7 +687,39 @@ void string(char row[],binary_directive** struct_DC)
 	/* Add null terminator to end the string */
 	add_number(0,(void**)struct_DC, TYPE_DIRECTIVE,4);
 }
-
+int string_commas_check(char* row)
+{
+	char* colon;
+	colon=strchr(row,'g')+1;
+	while((isspace(*colon))&& (*colon!='\n'))
+		colon++;
+	if(*colon!='"')
+	{
+		error=1;
+		fprintf(stderr,"in line:%d unexpected char\n",sum_of_row);
+		return 0;
+	}
+	else
+	{
+		colon+=1;
+		colon=strchr(colon,'"')+1;
+		if(colon==NULL)
+		{
+			error=1;
+			fprintf(stderr,"in line:%d missing last quotes\n",sum_of_row);
+			return 0;
+		}
+		while(isspace(*colon) && *colon!='\n')
+			colon++;
+		if(*colon!='\n')
+		{
+			error=1;
+			fprintf(stderr,"in line:%d unexpected char\n",sum_of_row);
+			return 0;
+		}	
+	}
+	return 1;
+}
 void mat(char row[], binary_directive** struct_DC)
 {
 	char  *open1, *close1, *open2, *close2, *after_brackets; /* Pointers for bracket parsing */
@@ -696,8 +727,9 @@ void mat(char row[], binary_directive** struct_DC)
 	char temp[31];                              /* Buffer for extracting dimension values */
 	char *token;                                /* Pointer to data tokens */
 
+	/*new_row=strchr(row,'['); */   /* Point to character after colon */
 	/* Fix comma formatting in the input row */
-	if(!check_commas(row,1))
+	if(!check_commas(row))
 		return;
 	/* Find first opening bracket for row dimension */
 	open1 = strchr(row, '[');
@@ -758,7 +790,7 @@ void mat(char row[], binary_directive** struct_DC)
 	} 
 	else 
 	{	/* Initialization values provided - process each value */
-		token = strtok(after_brackets, " ,");   /* Get first data token */
+	   	token = strtok(after_brackets, ",");/* Get first data token */
 		while (token != NULL) 
 		{	/* Validate each data value */
 			if (!is_valid_number(token,1)) 
@@ -769,9 +801,11 @@ void mat(char row[], binary_directive** struct_DC)
 			else 
 			{	/* Add valid number to data array */
 				add_number(atoi(token),(void**)struct_DC, TYPE_DIRECTIVE,4);
-				token = strtok(NULL, " ,"); /* Get next data token */
+			 /* Get next data token */
 			}
+			token = strtok(NULL, ","); /* Get next data token */
 		}
+			
 	}
 }
 
@@ -784,6 +818,8 @@ void entry_extern(char row[])
     	extra = strtok(NULL, " \t\n\r");           /* Skip label name */
     	extra = strtok(NULL, " \t\n\r");           /* Check for extra parameters */
 
+	if(!(check_commas(row)))
+		return;
     	/* Validate that no extra parameters are provided */
     	if (extra != NULL) 
 	{

@@ -26,7 +26,7 @@
  *   1 if no syntax errors were found,
  *   0 if any syntax errors were detected.
  */
-int check_commas(const char *line, int is_mat);
+int check_commas(const char *line);
 
 
 /*
