@@ -7,7 +7,7 @@ char *base4_convert(char a, char b, char* result)
 	unsigned char two_bits;     /* Temporary storage for extracted 2-bit values */
 	
 	/* Process the 8 bits of 'a': handle 4 groups of 2 bits from high to low */
-	for (i = 0; i < 4; i++)
+	for (i = 0; i <LEN_OF_BASE_4_ROW; i++)
 	{
 		/* Extract 2 bits at a time, starting from most significant bits */
 		/* (6 - i * 2) calculates shift amount: 6,4,2,0 for positions 7-6,5-4,3-2,1-0 */
@@ -77,7 +77,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 			switch (struct_type) 
 			{
 
-				case 1: 
+				case ENCODING_IC_COMMAND: 
 				{
 					/* Process binary instruction code array */
 					IC=100;  /* Initialize instruction counter to starting address 100 */
@@ -93,7 +93,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 						base4_convert(a, b, result);  /* Convert to base4 string */
 						
 						/* Write the first 4 characters of converted address to file */
-						for (k = 0; k<4; k++) 
+						for (k = 0; k<LEN_OF_BASE_4_ROW; k++) 
 							fprintf(f2, "%c", result[k]);
 						fprintf(f2, " ");  /* Add space separator between address and data */
 						
@@ -108,7 +108,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 					}
 					break;
 				}
-				case 2: 
+				case ENCODING_DC_COMMAND: 
 				{
 					/* Process binary directive array (data directives like .data, .string) */
 					bd_array = (binary_directive**)array;  /* Cast void pointer to binary_directive array */
@@ -123,7 +123,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 						base4_convert(a, b, result);  /* Convert to base4 string */
 						
 						/* Write the first 4 characters of converted address to file */
-						for (k = 0; k<4;  k++) 
+						for (k = 0; k<LEN_OF_BASE_4_ROW;  k++) 
 							fprintf(f2, "%c", result[k]);
 						fprintf(f2, " ");  /* Add space separator between address and data */
 						
@@ -138,7 +138,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 					}
 					break;
 				}
-				case 3: 
+				case ENCODING_EXTERN_FILE: 
 				{
 					/* Process external labels array - labels defined in other files */
 					j = 0;     /* Initialize array index counter */
@@ -155,7 +155,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 							base4_convert(a, b, result);  /* Convert address to base4 */
 							
 							/* Write first 4 characters of converted address */
-							for (k = 0; k <4; k++) 
+							for (k = 0; k <LEN_OF_BASE_4_ROW; k++) 
 								fprintf(f2, "%c", result[k]);
 							fprintf(f2, "\n");  /* Add newline after each external label */
 						
@@ -163,7 +163,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 					}
 					break;	
 				}
-				case 4: 
+				case ENCODING_ENTERY_FILE: 
 				{
 					/* Process symbol (SEMEL) array - internal labels and symbols */
 					j = 0;     /* Initialize array index counter */
@@ -182,7 +182,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 							base4_convert(a, b, result);  /* Convert address to base4 */
 							
 							/* Write first 4 characters of converted address */
-							for (k = 0; k <4  ; k++) 
+							for (k = 0; k <LEN_OF_BASE_4_ROW  ; k++) 
 								fprintf(f2, "%c", result[k]);
 							fprintf(f2, "\n");  /* Add newline after each internal symbol */
 						}
@@ -190,7 +190,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 					}
 					break;	
 				}
-				case 5:
+				case ENCODING_IC_DC:
 				{
 					/* Write instruction counter and data counter values in base4 format */
 					/* This case outputs the final IC and DC values to the file header */
@@ -202,7 +202,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 						base4_convert(a, b, result);  /* Convert IC to base4 */
 						
 						/* Write all 4 characters of converted IC */
-						for (k = 0; k<4; k++)
+						for (k = 0; k<LEN_OF_BASE_4_ROW; k++)
 							fprintf(f2, "%c", result[k]);
 						fprintf(f2, " ");  /* Add space separator between IC and DC */
 						
@@ -213,7 +213,7 @@ void BinaryToBase4(void** array, int argc, char *argv[], int i, FILE* f2, int st
 						base4_convert(a, b, result);  /* Convert DC to base4 */
 						
 						/* Write all 4 characters of converted DC */
-						for (k = 0; k<4; k++) 
+						for (k = 0; k<LEN_OF_BASE_4_ROW; k++) 
 							fprintf(f2, "%c", result[k]);
 						fprintf(f2, " ");  /* Add space after DC value */
 					break;

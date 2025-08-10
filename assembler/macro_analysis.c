@@ -53,14 +53,14 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
             		is_command = 0;         /* Initialize conflict flag to false */
             		
             		/* Check against instruction commands (cmd array has 16 elements) */
-            		for (j = 0; j < 16; j++)
+            		for (j = 0; j < NUM_OF_IC_COMMAND; j++)
 			{
                 		if (strcmp(cmd[j].name, macro_name) == 0) 
 					is_command = 1;     /* Found conflict with instruction */
 			}
 			
             		/* Check against directive commands (cmd1 array has 5 elements) */
-            		for (j = 0; j < 5 && !is_command; j++)
+            		for (j = 0; j < NUM_OF_DC_COMMAND && !is_command; j++)
 			{
                 		if (strcmp(cmd1[j].name, macro_name) == 0)
 					is_command = 1;     /* Found conflict with directive */

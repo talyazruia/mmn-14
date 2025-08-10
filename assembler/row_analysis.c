@@ -74,7 +74,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 			/* Check if label conflicts with instruction command names */
 			if(valid_label==1)
 			{
-				for(i=0; i<16; i++)             /* cmd array has 16 instruction commands */
+				for(i=0; i<NUM_OF_IC_COMMAND; i++)             /* cmd array has 16 instruction commands */
 				{
 					if(strcmp(label, cmd[i].name)==0)
 					{
@@ -100,7 +100,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					type=0;                         /* Default type: instruction */
 					addres=IC;                      /* Default address: current instruction counter */
 					/* Check if token matches instruction commands */
-					for(i=0; i<16; i++)             /* cmd array has 16 instruction commands */
+					for(i=0; i<NUM_OF_IC_COMMAND; i++)             /* cmd array has 16 instruction commands */
 					{
 						if(strcmp(token, cmd[i].name)==0)
 						{
@@ -111,7 +111,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 						}
 					}
 					/* Check if token matches directive commands */
-				 	for (j = 0; j < 5; j++)         /* cmd1 array has 5 directive commands */
+				 	for (j = 0; j <NUM_OF_DC_COMMAND; j++)         /* cmd1 array has 5 directive commands */
 					{
 						if (strcmp(token, cmd1[j].name) == 0) 
 						{
@@ -134,7 +134,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 								new_row=row;            /* Use entire row if no colon found */
 							
 							/* Process 2-argument commands */
-							for(i=0; i<5; i++)              /* cmd_2_arg array has 5 commands */
+							for(i=0; i<_2_ARG_COMMAND_IC; i++)              /* cmd_2_arg array has 5 commands */
 							{
 								if(strcmp(token, cmd_2_arg[i])==0)
 								{	/* Create safe copy for processing */
@@ -145,7 +145,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 								}
 							}
 							/* Process 1-argument commands */
-				 			for (j = 0; j < 9; j++)         /* cmd_1_arg array has 9 commands */
+				 			for (j = 0; j < _1_ARG_COMMAND_IC; j++)         /* cmd_1_arg array has 9 commands */
 							{
 								if (strcmp(token, cmd_1_arg[j]) == 0) 
 								{	/* Create safe copy for processing */
@@ -156,7 +156,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 								}
 							}
 							/* Process 0-argument commands */
-							for (j = 0; j < 2; j++)         /* cmd_0_arg array has 2 commands */
+							for (j = 0; j < _0_ARG_COMMAND_IC; j++)         /* cmd_0_arg array has 2 commands */
 							{
 								if (strcmp(token, cmd_0_arg[j]) == 0) 
 								{
@@ -239,7 +239,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				found_command=0;                    /* Initialize command found flag */
 				
 				/* Check for 2-argument commands */
-				for(i=0; i<5; i++)                  /* cmd_2_arg array has 5 commands */
+				for(i=0; i<_2_ARG_COMMAND_IC; i++)                  /* cmd_2_arg array has 5 commands */
 				{
 					if(strcmp(token, cmd_2_arg[i])==0)
 					{
@@ -251,7 +251,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				/* Check for 1-argument commands if not already found */
 				if(!found_command) 
 				{
-					for (j = 0; j < 9; j++)             /* cmd_1_arg array has 9 commands */
+					for (j = 0; j < _1_ARG_COMMAND_IC; j++)             /* cmd_1_arg array has 9 commands */
 					{
 						if (strcmp(token, cmd_1_arg[j]) == 0) 
 						{
@@ -264,7 +264,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				/* Check for 0-argument commands if not already found */
 				if(!found_command) 
 				{
-					for (j = 0; j < 2; j++)             /* cmd_0_arg array has 2 commands */
+					for (j = 0; j < _0_ARG_COMMAND_IC; j++)             /* cmd_0_arg array has 2 commands */
 					{
 						if (strcmp(token, cmd_0_arg[j]) == 0) 
 						{
@@ -356,7 +356,7 @@ int is_valid_label_format(const char* label)
     	size_t len = strlen(label);                 /* Length of label string */
     
     	/* Check if label exceeds maximum allowed length */
-    	if (len > 30) 
+    	if (len >MAX_LEN_OF_LABEL ) 
 	{
         	fprintf(stderr, "error in line %d: label too long (max 30 characters): %s\n", sum_of_row,label);
 		error=1;                            /* Set global error flag */

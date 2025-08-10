@@ -21,16 +21,16 @@ int main(int argc, char * argv[])
 		{"cmp", 2, 1},
 		{"add", 2, 2},
 		{"sub", 2, 3},
-		{"not", 1, 4},
+		{"not", 1, 6},
 		{"clr", 1, 5},
-		{"lea", 2, 6},
+		{"lea", 2, 4},
 		{"inc", 1, 7},
 		{"dec", 1, 8},
 		{"jmp", 1, 9},
 		{"bne", 1, 10},
-		{"red", 1, 11},
-		{"prn", 1, 12},
-		{"jsr", 1, 13},
+		{"red", 1, 12},
+		{"prn", 1, 13},
+		{"jsr", 1, 11},
 		{"rts", 0, 14},
 		{"stop", 0, 15}
 	};
@@ -132,7 +132,7 @@ int main(int argc, char * argv[])
 					fprintf(stderr, "%s %d \n", extern_labels[k].name, extern_labels[k].addres);
 				}
 
-				if(error==0&&ic+DC<256)
+				if(error==0&&ic+DC<MAX_NUMBES_OF_ROW_IN_INPUT)
 				{
 				f2_ob=end_file_name( argc,argv,i, 2);
 				if(f2_ob==NULL)
@@ -140,10 +140,10 @@ int main(int argc, char * argv[])
 					error=1;
 					return 0;
 				}
-				BinaryToBase4((void**)&array,argc, argv, i, f2_ob, 5,&semel_count,ic-100);
+				BinaryToBase4((void**)&array,argc, argv, i, f2_ob,ENCODING_IC_DC,&semel_count,ic-FIRST_ADDRES);
 				fprintf(f2_ob, "\n");
-				BinaryToBase4((void**)&array,argc, argv, i, f2_ob, 1,&semel_count,0);
-				BinaryToBase4((void**)&struct_DC,argc, argv, i, f2_ob, 2,&semel_count,0);
+				BinaryToBase4((void**)&array,argc, argv, i, f2_ob, ENCODING_IC_COMMAND ,&semel_count,0);
+				BinaryToBase4((void**)&struct_DC,argc, argv, i, f2_ob, ENCODING_DC_COMMAND,&semel_count,0);
 				fclose(f2_ob);
 
 				f3_ex=end_file_name( argc,argv,i, 3);
@@ -152,7 +152,7 @@ int main(int argc, char * argv[])
 					error=1;
 					return 0;
 				}
-				BinaryToBase4((void**)&extern_labels,argc, argv, i, f3_ex, 3,&count_of_extern_labels,0);
+				BinaryToBase4((void**)&extern_labels,argc, argv, i, f3_ex, ENCODING_EXTERN_FILE ,&count_of_extern_labels,0);
 				fclose(f3_ex);
 
 				f4_en=end_file_name( argc,argv,i, 4);
@@ -161,7 +161,7 @@ int main(int argc, char * argv[])
 					error=1;
 					return 0;
 				}
-				BinaryToBase4((void**)SEMELS,argc, argv, i, f4_en, 4,&semel_count,0);
+				BinaryToBase4((void**)SEMELS,argc, argv, i, f4_en,  ENCODING_ENTERY_FILE,      &semel_count,0);
 				fclose(f4_en);
 
 				fclose(f_used);

@@ -16,7 +16,27 @@
 #define END_FILE_NAME_EXT ".ext"
 #define MAX_LEN_OF_ROW 82
 #define MAX_LEN_OF_LABEL 31
-
+#define NUM_OF_IC_COMMAND 16
+#define NUM_OF_DC_COMMAND 5
+#define _2_ARG_COMMAND_IC 5 
+#define _1_ARG_COMMAND_IC 9
+#define _0_ARG_COMMAND_IC 2
+#define MAX_NUMBES_OF_ROW_IN_INPUT 250
+#define FIRST_ADDRES 100
+#define ENCODING_IC_COMMAND 1
+#define ENCODING_DC_COMMAND 2
+#define ENCODING_EXTERN_FILE 3
+#define ENCODING_ENTERY_FILE 4
+#define ENCODING_IC_DC 5
+#define LEN_OF_BASE_4_ROW 4
+#define ADDRESSING_MODE_HASH_NUM 0
+#define ADDRESSING_MODE_SEMEL 1
+#define ADDRESSING_MODE_MATRIX 2
+#define ADDRESSING_MODE_REG 3
+#define OP_OF_FIRST_HASH_NUM 3
+#define OP_OF_FIRST_HASH_NUM1 13
+#define OP_OF_CMP 1
+#define OP_OF_LEA 4
 /* File type enumeration */
 enum FileType { AM = 1, OB, EXT, ENT };
 

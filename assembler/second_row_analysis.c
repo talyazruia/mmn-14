@@ -49,7 +49,7 @@ void second_row_analysis(FILE * f , command cmd[]  ,SEMEL*** SEMELS, int* semel_
 					new_row=row;            /* Use entire row if no colon found */
 					
 				/* Check if token matches instruction commands */
-				for(i=0; i<16; i++)             /* cmd array has 16 instruction commands */
+				for(i=0; i<NUM_OF_IC_COMMAND; i++)             /* cmd array has 16 instruction commands */
 				{
 					if(strcmp(token, cmd[i].name)==0)
 					{	/* Process instruction command and generate binary code */
@@ -81,7 +81,7 @@ void second_row_analysis(FILE * f , command cmd[]  ,SEMEL*** SEMELS, int* semel_
 		else
 		{	/* Line doesn't start with label - process command directly */
 			/* Check if token matches instruction commands */
-			for(i=0; i<16; i++)                 /* cmd array has 16 instruction commands */
+			for(i=0; i<NUM_OF_IC_COMMAND; i++)                 /* cmd array has 16 instruction commands */
 			{
 				if(strcmp(token, cmd[i].name)==0)
 				{	/* Process instruction command and generate binary code */
@@ -339,298 +339,366 @@ void add_to_extern_label(extern_label ** extern_labels,int* COUNT_OF_EXTERN_LABE
 	strcpy((*extern_labels)[*COUNT_OF_EXTERN_LABEL].name, str);  /* Copy label name */
 	(*COUNT_OF_EXTERN_LABEL)++;                 /* Increment external label counter */
 }
-
 int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cmd[], binary_code** array, extern_label ** extern_labels, int* COUNT_OF_EXTERN_LABEL)
 {
-	char* command;                              /* Pointer to command name token */
-	char* op1 = NULL;                           /* Pointer to first operand token */
-	char* op2 = NULL;                           /* Pointer to second operand token */
-	char* op3;                                  /* Pointer to check for extra operands */
-	int opcode = -1;                            /* Command opcode number */
-	int i = 0;                                  /* Loop counter for command lookup */
-	int op1_val = 0;                            /* Numeric value of first operand */
-	int op2_val = 0;                            /* Numeric value of second operand */
-	int op1_type = -1;                          /* Addressing mode of first operand */
-	int* op1_mat = NULL;                        /* Matrix info for first operand [index, reg1, reg2] */
-	int* op2_mat = NULL;                        /* Matrix info for second operand [index, reg1, reg2] */
-	int op2_type = -1;                          /* Addressing mode of second operand */
-	int flag1 = -1;                             /* Processing flag for first operand */
-	int flag2 = -1;                             /* Processing flag for second operand */
-	int semel_index = 0;                        /* Symbol table index for first operand */
-	int op2_semel_index = -1;                   /* Symbol table index for second operand */
-	int num_operands = 0;                       /* Count of operands found */
-	int required_operands = 0;                  /* Number of operands required by command */
-	int found_operand = 0;                      /* Flag indicating if operand was successfully parsed */
-	
+	char* command;								/* Pointer to command name token */
+	char* op1 = NULL;							/* Pointer to first operand token */
+	char* op2 = NULL;							/* Pointer to second operand token */
+	char* op3;									/* Pointer to check for extra operands */
+	int opcode = -1;							/* Command opcode number */
+	int i = 0;									/* Loop counter for command lookup */
+	int op1_val = 0;							/* Numeric value of first operand */
+	int op2_val = 0;							/* Numeric value of second operand */
+	int op1_type = -1;							/* Addressing mode of first operand */
+	int* op1_mat = NULL;						/* Matrix info for first operand [index, reg1, reg2] */
+	int* op2_mat = NULL;						/* Matrix info for second operand [index, reg1, reg2] */
+	int op2_type = -1;							/* Addressing mode of second operand */
+	int flag1 = -1;								/* Processing flag for first operand */
+	int flag2 = -1;								/* Processing flag for second operand */
+	int semel_index = 0;						/* Symbol table index for first operand */
+	int op2_semel_index = -1;					/* Symbol table index for second operand */
+	int num_operands = 0;						/* Count of operands found */
+	int required_operands = 0;					/* Number of operands required by command */
+	int found_operand = 0;						/* Flag indicating if operand was successfully parsed */
+	char* temp_semel;
+
 	if(!(check_commas(row)))
 		return 0;
-	command = strtok(row, " \t\n\r");/* Extract command name from row */
-	if (command == NULL) 
+
+	command = strtok(row, " \t\n\r");			/* Extract command name from row */
+	if (command == NULL)
 	{
 		fprintf(stderr, "error in line:%d Empty command\n", sum_of_row);
-		error = 1;                          /* Set global error flag */
+		error = 1;								/* Set global error flag */
 		return 0;
 	}
-	while (i < 16) /* Look up command in command table to get opcode and parameter count */
-	{ 
-		if (strcmp(cmd[i].name, command) == 0)  /* cmd array has 16 instruction commands */
+
+	while (i < NUM_OF_IC_COMMAND)								/* Look up command in command table to get opcode and parameter count */
+	{
+		if (strcmp(cmd[i].name, command) == 0)	/* cmd array has 16 instruction commands */
 		{
-			opcode = cmd[i].op;             /* Get command opcode */
-			required_operands = cmd[i].param; /* Get number of required operands */
+			opcode = cmd[i].op;					/* Get command opcode */
+			required_operands = cmd[i].param;	/* Get number of required operands */
 			break;
 		}
 		i++;
 	}
-	if (opcode == -1) /* Validate that command was found */
+
+	if (opcode == -1)							/* Validate that command was found */
 	{
 		fprintf(stderr, "error in line:%d Unknown command %s\n", sum_of_row, command);
-		error = 1;                          /* Set global error flag */
+		error = 1;								/* Set global error flag */
 		return 0;
 	}
-	if (required_operands >= 1) /* Extract first operand if required */
+
+	if (required_operands >= 1)					/* Extract first operand if required */
 	{
 		if (required_operands == 2)
-			op1 = strtok(NULL, ",");    /* Use comma delimiter for 2-operand commands */
+			op1 = strtok(NULL, ",");			/* Use comma delimiter for 2-operand commands */
 		else
-			op1 = strtok(NULL, " \t\n"); /* Use whitespace delimiter for 1-operand commands */
-		if (op1 == NULL) 
+			op1 = strtok(NULL, " \t\n");		/* Use whitespace delimiter for 1-operand commands */
+
+		if (op1 == NULL)
 		{
 			fprintf(stderr, "error in line:%d Missing operand in command %s\n", sum_of_row, command);
-			error = 1;                  /* Set global error flag */
+			error = 1;							/* Set global error flag */
 			return 0;
 		}
-		while (*op1 == ' ' || *op1 == '\t') /* Remove leading whitespace from operand */
+
+		while (*op1 == ' ' || *op1 == '\t')		/* Remove leading whitespace from operand */
 			op1++;
-		num_operands++;                     /* Increment operand counter */
+
+		num_operands++;							/* Increment operand counter */
 	}
-	if (required_operands >= 2) /* Extract second operand if required */
+
+	if (required_operands >= 2)					/* Extract second operand if required */
 	{
-		op2 = strtok(NULL, " ");            /* Get second operand */
-		if (op2 == NULL) 
+		op2 = strtok(NULL, " ");				/* Get second operand */
+		if (op2 == NULL)
 		{
 			fprintf(stderr, "error in line:%d Missing second operand in command %s\n", sum_of_row, command);
-			error = 1;                  /* Set global error flag */
+			error = 1;							/* Set global error flag */
 			return 0;
 		}
-		while (*op2 == ' ' || *op2 == '\t')/* Remove leading whitespace from operand */ 
+
+		while (*op2 == ' ' || *op2 == '\t')		/* Remove leading whitespace from operand */
 			op2++;
-		num_operands++;                     /* Increment operand counter */
+
+		num_operands++;							/* Increment operand counter */
 	}
-	if (required_operands > 0) /* Check for extra operands */
+
+	op3 = strtok(NULL, " \t\n");				/* Check for additional tokens */
+	if (op3 != NULL && strlen(op3) > 0)
 	{
-		op3 = strtok(NULL, " \t\n");        /* Check for additional tokens */
-		if (op3 != NULL && strlen(op3) > 0) 
-		{
-			fprintf(stderr, "error in line:%d too many operands in command %s\n", sum_of_row, command);
-			error = 1;                  /* Set global error flag */
-			return 0;
-		}
-	}
-	if (num_operands != required_operands) /* Validate operand count matches requirement */
-	{
-		if (num_operands < required_operands)
-			fprintf(stderr, "error in line:%d Missing operand in command %s\n", sum_of_row, command);
-		else
-			fprintf(stderr, "error in line:%d too many operands in command %s\n", sum_of_row, command);
-		error = 1;                          /* Set global error flag */
+		fprintf(stderr, "error in line:%d too many operands in command %s\n", sum_of_row, command);
+		error = 1;								/* Set global error flag */
 		return 0;
 	}
-	if (op1 != NULL) /* Process first operand */
-	{	/* Check if operand is immediate value (starts with #) */
-		if (is_valid_number(op1, 0)) 
-		{	/* Validate that immediate addressing is allowed for this command */
-			if (opcode == 1 || opcode == 12 || opcode == 13) 
+
+	if (num_operands != required_operands)		/* Validate operand count matches requirement */
+	{
+		if (num_operands < required_operands)
+			fprintf(stderr, "error in line:%d Missing operand in command 11%s\n", sum_of_row, command);
+		else
+			fprintf(stderr, "error in line:%d too many operands in command %s\n", sum_of_row, command);
+
+		error = 1;								/* Set global error flag */
+		return 0;
+	}
+
+	if (op1 != NULL)							/* Process first operand */
+	{
+		/* Check if operand is immediate value (starts with #) */
+		if (is_valid_number(op1, 0))
+		{
+			/* Validate that immediate addressing is allowed for this command */
+			if (opcode <= OP_OF_FIRST_HASH_NUM || opcode == OP_OF_FIRST_HASH_NUM1)
 			{
-				op1_val = atoi(op1);    /* Extract number after # */
-				op1_type = 0;               /* Addressing mode 0: immediate */
-				flag1 = 0;                  /* Flag for immediate processing */
-				found_operand = 1;          /* Mark operand as successfully parsed */
-			} 
-			else 
+				op1_val = atoi(op1);			/* Extract number after # */
+				op1_type = ADDRESSING_MODE_HASH_NUM;					/* Addressing mode 0: immediate */
+				flag1 = 0;						/* Flag for immediate processing */
+				found_operand = 1;				/* Mark operand as successfully parsed */
+			}
+			else
 			{
-				fprintf(stderr, "error in line:%d: Immediate operand not allowed for command %s\n", sum_of_row, command);
-				error = 1;                  /* Set global error flag */
+				fprintf(stderr, "error in line:%d: Immediate operand not allowed for command 11%s\n", sum_of_row, command);
+				error = 1;						/* Set global error flag */
 				return 0;
 			}
 		}
-		else if (reg(op1))/* Check if operand is register */ 
+		else if (reg(op1))						/* Check if operand is register */
 		{
-			op1_val = atoi(op1 + 1);        /* Extract register number */
-			op1_type = 3;                   /* Addressing mode 3: register direct */
-			flag1 = 0;                      /* Flag for register processing */
-			found_operand = 1;              /* Mark operand as successfully parsed */
-		} 
-		else 
-		{	/* Check if operand is matrix reference */
-			op1_mat = valid_matrix(op1, SEMELS, semel_count);
-			if (op1_mat != NULL) 
+			if (opcode != OP_OF_LEA)
 			{
-				op1_type = 2;               /* Addressing mode 2: matrix */
-				flag1 = 2;                  /* Flag for matrix processing */
-				found_operand = 1;          /* Mark operand as successfully parsed */
-			} 
-			else 
-			{	/* Check if operand is symbol/label */
+				op1_val = atoi(op1 + 1);		/* Extract register number */
+				op1_type = ADDRESSING_MODE_REG;					/* Addressing mode 3: register direct */
+				flag1 = 0;						/* Flag for register processing */
+				found_operand = 1;				/* Mark operand as successfully parsed */
+			}
+			else
+			{
+				fprintf(stderr, "error in line:%d: register operand not allowed for command %s\n", sum_of_row, command);
+				error = 1;						/* Set global error flag */
+				return 0;
+			}
+		}
+		else
+		{
+			/* Check if operand is matrix reference */
+			op1_mat = valid_matrix(op1, SEMELS, semel_count);
+			if (op1_mat != NULL)
+			{
+				op1_type = ADDRESSING_MODE_MATRIX;					/* Addressing mode 2: matrix */
+				flag1 = 2;						/* Flag for matrix processing */
+				found_operand = 1;				/* Mark operand as successfully parsed */
+			}
+			else
+			{
+				/* Check if operand is symbol/label */
 				semel_index = valid_SEMEL(op1, SEMELS, semel_count);
-				if (semel_index != -1) 
+				if (semel_index != -1)
 				{
-					op1_val = SEMELS[semel_index]->addres; /* Get symbol address */
-					op1_type = 1;           /* Addressing mode 1: direct */
-					flag1 = 1;              /* Flag for symbol processing */
-					found_operand = 1;      /* Mark operand as successfully parsed */
-				} 
-				else 
+					op1_val = SEMELS[semel_index]->addres;	/* Get symbol address */
+					op1_type = ADDRESSING_MODE_SEMEL;				/* Addressing mode 1: direct */
+					flag1 = 1;					/* Flag for symbol processing */
+					found_operand = 1;			/* Mark operand as successfully parsed */
+				}
+				else
 				{
 					fprintf(stderr, "error in line:%d Invalid operand: %s\n", sum_of_row, op1);
-					error = 1;              /* Set global error flag */
+					error = 1;					/* Set global error flag */
 					return 0;
 				}
 			}
 		}
-		if (found_operand == 0) /* Check if operand was successfully parsed */
+
+		if (found_operand == 0)					/* Check if operand was successfully parsed */
 		{
-			error = 1;                      /* Set global error flag */
+			error = 1;							/* Set global error flag */
 			fprintf(stderr, "error in line:%d unvalid operand", sum_of_row);
 		}
-		found_operand = 0;                  /* Reset flag for next operand */
+		found_operand = 0;						/* Reset flag for next operand */
 	}
-	if (op2 != NULL) /* Process second operand */
-	{	/* Check if operand is immediate value (starts with #) */
-		if (is_valid_number(op2, 0)) 
-		{	/* Validate that immediate addressing is allowed as destination */
-			if (opcode == 1 || opcode == 13) 
+
+	if (op2 != NULL)							/* Process second operand */
+	{
+		/* Check if operand is immediate value (starts with #) */
+		if (is_valid_number(op2, 0))
+		{
+			/* Validate that immediate addressing is allowed as destination */
+			if (opcode == OP_OF_CMP)
 			{
-				op2_val = atoi(op2);    /* Extract number after # */
-				op2_type = 0;               /* Addressing mode 0: immediate */
+				op2_val = atoi(op2);			/* Extract number after # */
+				op2_type = ADDRESSING_MODE_HASH_NUM;					/* Addressing mode 0: immediate */
 				/* Set flag based on first operand type for register optimization */
 				flag2 = (op1_type == 0) ? 0 : 1;
-				found_operand = 1;          /* Mark operand as successfully parsed */
-			} 
-			else 
+				found_operand = 1;				/* Mark operand as successfully parsed */
+			}
+			else
 			{
 				fprintf(stderr, "error in line:%d Immediate operand not allowed as destination for command %s\n", sum_of_row, command);
-				error = 1;                  /* Set global error flag */
+				error = 1;						/* Set global error flag */
 				return 0;
 			}
 		}
-		else if (reg(op2))/* Check if operand is register */ 
+		else if (reg(op2))						/* Check if operand is register */
 		{
-			op2_val = atoi(op2 + 1);        /* Extract register number */
-			op2_type = 3;                   /* Addressing mode 3: register direct */
+			op2_val = atoi(op2 + 1);			/* Extract register number */
+			op2_type = ADDRESSING_MODE_REG;						/* Addressing mode 3: register direct */
 			/* Set flag based on first operand type for register optimization */
 			flag2 = (op1_type == 3) ? 0 : 1;
-			found_operand = 1;              /* Mark operand as successfully parsed */
-		} 
-		else 
-		{	/* Check if operand is symbol/label */
+			found_operand = 1;					/* Mark operand as successfully parsed */
+		}
+		else
+		{
+			/* Check if operand is symbol/label */
 			op2_semel_index = valid_SEMEL(op2, SEMELS, semel_count);
-			if (op2_semel_index != -1) 
+			if (op2_semel_index != -1)
 			{
-				op2_val = SEMELS[op2_semel_index]->addres; /* Get symbol address */
-				op2_type = 1;               /* Addressing mode 1: direct */
-				flag2 = 1;                  /* Flag for symbol processing */
-				found_operand = 1;          /* Mark operand as successfully parsed */
-			} 
-			else 
-			{	/* Check if operand is matrix reference */
+				op2_val = SEMELS[op2_semel_index]->addres;	/* Get symbol address */
+				op2_type = ADDRESSING_MODE_SEMEL;				/* Addressing mode 1: direct */
+				flag2 = 1;					/* Flag for symbol processing */
+				found_operand = 1;			/* Mark operand as successfully parsed */
+			}
+			else
+			{
+				/* Check if operand is matrix reference */
 				op2_mat = valid_matrix(op2, SEMELS, semel_count);
-				if (op2_mat != NULL) 
+				if (op2_mat != NULL)
 				{
-					op2_type = 2;           /* Addressing mode 2: matrix */
-					flag2 = 2;              /* Flag for matrix processing */
-					found_operand = 1;      /* Mark operand as successfully parsed */
-				} 
-				else 
+					op2_type = ADDRESSING_MODE_SEMEL;			/* Addressing mode 2: matrix */
+					flag2 = 2;				/* Flag for matrix processing */
+					found_operand = 1;		/* Mark operand as successfully parsed */
+				}
+				else
 				{
 					fprintf(stderr, "error in line:%d Invalid operand: %s\n", sum_of_row, op2);
-					error = 1;              /* Set global error flag */
+					error = 1;				/* Set global error flag */
 					return 0;
 				}
 			}
 		}
-		if (found_operand == 0) /* Check if operand was successfully parsed */
+
+		if (found_operand == 0)					/* Check if operand was successfully parsed */
 		{
-			error = 1;                      /* Set global error flag */
+			error = 1;							/* Set global error flag */
 			fprintf(stderr, "error in line:%d unvalid operand", sum_of_row);
 		}
 	}
+
 	/* Generate first instruction word with opcode and addressing modes */
 	if (op1_type == -1 && op2_type == -1)
-		to_binary(opcode, 0, 0, array);         /* No operands */
+		to_binary(opcode, 0, 0, array);			/* No operands */
 	else if (op2_type == -1)
-		to_binary(opcode, 0, op1_type, array); /* One operand */
+		to_binary(opcode, 0, op1_type, array);	/* One operand */
 	else
 		to_binary(opcode, op1_type, op2_type, array); /* Two operands */
+
 	/* Generate additional words based on operand types */
 	if (flag1 == -1 && flag2 == -1)
-		return 1;                               /* No additional words needed */
-	else if (flag2 == -1) 
-	{	/* Only first operand needs additional word */
-		if (op1_type == 1) 
-		{	/* Symbol operand - check if external */
+		return 1;								/* No additional words needed */
+	else if (flag2 == -1)
+	{
+		/* Only first operand needs additional word */
+		if (op1_type == ADDRESSING_MODE_SEMEL)
+		{
+			/* Symbol operand - check if external */
 			if (SEMELS[semel_index]->ex_en == 1)
 				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op1);
+
 			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, SEMELS[semel_index]->ex_en);
-		} 
-		else if (op1_type == 0)/* Immediate operand */
+		}
+		else if (op1_type == ADDRESSING_MODE_HASH_NUM)					/* Immediate operand */
+		{
 			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
-		else if (op1_type ==3)/* Register operand */
+		}
+		else if (op1_type == ADDRESSING_MODE_REG)					/* Register operand */
+		{
 			add_two_numbers(0, op1_val, array);
-		else if(op1_type == 2)/*operand is matrix */
+		}
+		else if (op1_type == ADDRESSING_MODE_MATRIX)					/* operand is matrix */
 		{
 			if (SEMELS[op1_mat[0]]->ex_en == 1)
-				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op1);
+			{
+				temp_semel = strtok(op1,"[");
+				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, temp_semel);
+			}
+
 			add_number(SEMELS[op1_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op1_mat[0]]->ex_en);
-			add_two_numbers(op1_mat[1], op1_mat[2], array); /* Matrix indices */
-			free(op1_mat);                          /* Clean up matrix info */
+			add_two_numbers(op1_mat[1], op1_mat[2], array);	/* Matrix indices */
+			free(op1_mat);						/* Clean up matrix info */
 			op1_mat = NULL;
 		}
-	} 
-	else if (flag1 + flag2 == 0) /* Both operands are registers - can be packed in one word */
+	}
+	else if (flag1 + flag2 == 0)				/* Both operands are registers - can be packed in one word */
+	{
 		add_two_numbers(op1_val, op2_val, array);
-	else if (flag1 == 2) 
-	{	/* First operand is matrix */
+	}
+	else if (flag1 == 2)
+	{
+		/* First operand is matrix */
 		if (SEMELS[op1_mat[0]]->ex_en == 1)
-			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op1);
+		{
+			temp_semel = strtok(op1,"[");
+			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, temp_semel);
+		}
+
 		add_number(SEMELS[op1_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op1_mat[0]]->ex_en);
-		add_two_numbers(op1_mat[1], op1_mat[2], array); /* Matrix indices */
-		free(op1_mat);                          /* Clean up matrix info */
+		add_two_numbers(op1_mat[1], op1_mat[2], array);		/* Matrix indices */
+		free(op1_mat);							/* Clean up matrix info */
 		op1_mat = NULL;
-	} 
-	else if (flag1 == 1) 
-	{	/* First operand is symbol */
+	}
+	else if (flag1 == 1)
+	{
+		/* First operand is symbol */
 		if (SEMELS[semel_index]->ex_en == 1)
 			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op1);
+
 		add_number(op1_val, (void**)array, TYPE_INSTRUCTION, SEMELS[semel_index]->ex_en);
-	} 
-	else 
-	{	/* First operand is register or immediate */
-		if (op1_type == 3)
-			add_two_numbers(op1_val, 0, array); /* Register */
-		else
-			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0); /* Immediate */
 	}
+	else										/* First operand is register or immediate */
+	{
+		if (op1_type == ADDRESSING_MODE_HASH_NUM)
+			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
+		if (op1_type == ADDRESSING_MODE_REG)
+			add_two_numbers(op1_val, 0, array);
+	}
+
 	/* Generate additional words for second operand */
-	if (flag2 == 2) 
-	{	/* Second operand is matrix */
+	if (flag2 == 2)
+	{
+		/* Second operand is matrix */
 		if (SEMELS[op2_mat[0]]->ex_en == 1)
-			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op2);
+		{
+			temp_semel = strtok(op2,"[");
+			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, temp_semel);
+		}
+
 		add_number(SEMELS[op2_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_mat[0]]->ex_en);
-		add_two_numbers(op2_mat[1], op2_mat[2], array); /* Matrix indices */
-		free(op2_mat);                          /* Clean up matrix info */
+		add_two_numbers(op2_mat[1], op2_mat[2], array);		/* Matrix indices */
+		free(op2_mat);							/* Clean up matrix info */
 		op2_mat = NULL;
-	} 
-	else if (flag2 == 1) 
-	{	/* Second operand is symbol or immediate */
-		if (op2_type == 1) 
-		{	/* Symbol operand */
+	}
+	else if (flag2 == 1)
+	{
+		/* Second operand is symbol or immediate */
+		if (op2_type == ADDRESSING_MODE_SEMEL)						/* Symbol operand */
+		{
 			if (SEMELS[op2_semel_index]->ex_en == 1)
 				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op2);
+
 			add_number(op2_val, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_semel_index]->ex_en);
-		} 
-		else 	/* Immediate operand */
+		}
+		else if (op2_type == ADDRESSING_MODE_HASH_NUM)					/* Immediate operand */
+		{
 			add_number(op2_val, (void**)array, TYPE_INSTRUCTION, 0);
+		}
+		else									/* Register operand */
+		{
+			add_two_numbers(0, op2_val, array);
+		}
 	}
+
 	return 0;
 }
 
