@@ -18,7 +18,7 @@ FILE* macro_analysis(FILE* f1, command cmd[], command1 cmd1[], int argc, char *a
 	char* temp_file_name;               /* Temporary string for constructing file name for deletion */
 	
 	/* Create output file with .am extension for macro-expanded assembly code */
-	f2= end_file_name(0, argv, i,1);
+	f2= end_file_name(0, argv, i,AM);
 
     	if (f2 == NULL) 
 	{

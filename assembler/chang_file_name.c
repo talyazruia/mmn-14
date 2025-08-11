@@ -72,7 +72,8 @@ FILE* end_file_name(int argc, char *argv[], int i, int file_type)
 	FILE *f;
 
 	/* Choose extension based on file type */
-	switch (file_type) {
+	switch (file_type)
+	{
 		case AM:
 			extension = END_FILE_NAME_AM;
 			break;
@@ -93,7 +94,8 @@ FILE* end_file_name(int argc, char *argv[], int i, int file_type)
 
 	/* Allocate memory for the new filename */
 	file_name = (char*)calloc(strlen(argv[i]) + strlen(extension) + 1, sizeof(char));
-	if (file_name == NULL) {
+	if (file_name == NULL) 
+	{
 		fprintf(stderr, "error: memory allocation failed\n");
 		error = 1;
 		return NULL;
@@ -106,7 +108,8 @@ FILE* end_file_name(int argc, char *argv[], int i, int file_type)
 
 	/* Open the file in write+ mode (create or truncate) */
 	f = fopen(file_name, "w+");
-	if (f == NULL) {
+	if (f == NULL) 
+	{
 		fprintf(stderr, "error: cannot create file: %s\n", file_name);
 		error = 1;
 		free(file_name);

@@ -138,8 +138,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							{
 								if(strcmp(token, cmd_2_arg[i])==0)
 								{	/* Create safe copy for processing */
-									/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-									new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
 									ic_count_2_arg(new_row);   /* Count instruction words needed */
 									break;
 								}
@@ -149,8 +147,6 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							{
 								if (strcmp(token, cmd_1_arg[j]) == 0) 
 								{	/* Create safe copy for processing */
-									/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-									new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
 									ic_count_1_arg(new_row);   /* Count instruction words needed */
 									break;
 								}
@@ -167,22 +163,16 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 							/* Process .data directive */
 							if(strcmp(token, ".data") == 0) 
 							{	/* Create safe copy for processing */
-								/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
 								dc_count_data(new_row);    /* Count data words needed */
 							}
 							/* Process .string directive */
 							if(strcmp(token, ".string") == 0) 
 							{	/* Create safe copy for processing */
-								/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
 								dc_count_string(new_row);  /* Count string characters needed */
 							}
 							/* Process .mat directive */
 							if(strcmp(token, ".mat") == 0) 
 							{	/* Create safe copy for processing */
-								/*strncpy(new_row_copy, new_row, MAX_LEN_OF_ROW + 1);
-								new_row_copy[MAX_LEN_OF_ROW + 1] = '\0';*/
 								dc_count_mat(new_row);     /* Count matrix elements needed */
 							}
 							/* Process .extern directive */
@@ -305,7 +295,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					found_command = 1;              /* Mark command as found */
 					/* Add external label to symbol table */
 					if (is_valid_label_format(token2))
-						add_SEMEL(token2,2/*type for extern*/,0, SEMELS, semel_count, 1);
+						add_SEMEL(token2,2,0, SEMELS, semel_count, 1);
 					else
 					{
 						fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
@@ -325,7 +315,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					found_command = 1;              /* Mark command as found */
 					/* Add entry label to symbol table */
 					if (is_valid_label_format(token2))
-						add_SEMEL(token2,1/*type for entry*/,1, SEMELS, semel_count, 0);
+						add_SEMEL(token2,1,1, SEMELS, semel_count, 0);
 					else
 					{
 						fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);

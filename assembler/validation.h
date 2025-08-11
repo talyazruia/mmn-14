@@ -10,9 +10,10 @@
  * special formatting exceptions used in the `.mat` directive.
  *
  * The function identifies the following types of errors:
- *   - Unexpected commas (e.g., at the start or multiple consecutive commas).
- *   - Missing commas between operands (unless explicitly allowed for `.mat`).
- *   - A trailing comma at the end of the line.
+ * - Unexpected commas.
+ * - A trailing comma at the end of the line.
+ * - A trailing comma at the start of the line.
+ * - Unexpected commas after command 
  *
  * The function does not modify the input line. It prints error messages to stderr
  * for each issue found.
@@ -26,7 +27,7 @@
  *   1 if no syntax errors were found,
  *   0 if any syntax errors were detected.
  */
-int check_commas(const char *line);
+int check_commas( char *line);
 
 
 /*
