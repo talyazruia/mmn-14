@@ -2,11 +2,11 @@
 #include "second_row_analysis.h"
 #include "validation.h"
 
-void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],command1 cmd1[],SEMEL*** SEMELS, int* semel_count)
+void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],command1 cmd1[],SEMEL*** SEMELS, int* semel_count , binary_code **array, binary_directive **struct_DC, extern_label**extern_labels, int *count_of_extern_labels) 
 {
-	char row[MAX_LEN_OF_ROW+2];                     /* Buffer for reading each line from file (+1 for \n, +1 for \0) */
-	char row_copy[MAX_LEN_OF_ROW+2];                /* Copy of row for tokenization (strtok modifies original) */
-	char label[31];                                 /* Buffer to store extracted label name (max 30 chars + null) */
+	char row[MAX_LEN_OF_ROW];                       /* Buffer for reading each line from file (+1 for \n, +1 for \0) */
+	char row_copy[MAX_LEN_OF_ROW];                  /* Copy of row for tokenization (strtok modifies original) */
+	char label[MAX_LEN_OF_LABEL];                    /* Buffer to store extracted label name (max 30 chars + null) */
 	char *token;                                    /* Pointer to current token from strtok */
 	char *token2;                                   /* Pointer to second token (used for .entry/.extern arguments) */
 	size_t len;                                     /* Length of current token for label detection */
@@ -28,9 +28,9 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 	{
 		sum_of_row++;                               /* Increment global line counter for error reporting */
 		/* Check if line exceeds maximum allowed length */
-		if (strchr(row, '\n') == NULL) 
+		if (strchr(row, '\n') == NULL && !feof(f)) 
 		{
-            		fprintf(stderr,"error in line %d: line too long (more than %d characters)\n",sum_of_row, MAX_LEN_OF_ROW);
+            		fprintf(stdout,"error in line %d: line too long (more than %d characters)\n",sum_of_row, MAX_LEN_OF_ROW);
 			error=1;                            /* Set global error flag */
 			clear_row_arry();                   /* Clear remaining input from buffer */
 			continue;                           /* Skip to next line */
@@ -52,7 +52,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 			token[len-1]='\0';                  /* Remove colon from token to get label name */
 			strcpy(label,token);                /* Copy label name to buffer */
 			/* Validate label format */
-			if (!is_valid_label_format(label)) 
+			if (!is_valid_label_format(label,semel_type,cmd)) 
 			{
     				error = 1;                  /* Set global error flag */
     				valid_label = 0;            /* Mark label as invalid */
@@ -64,24 +64,10 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				{
 					if (strcmp(label, macros[j]->name) == 0) 
 					{
-						fprintf(stderr, "error in line:%d, label cant be macro name: %s\n",sum_of_row, label);
+						fprintf(stdout, "error in line:%d, label cant be macro name: %s\n",sum_of_row, label);
 						error=1;            /* Set global error flag */
 						valid_label=0;      /* Mark label as invalid */
             					break;
-					}
-				}
-			}	
-			/* Check if label conflicts with instruction command names */
-			if(valid_label==1)
-			{
-				for(i=0; i<NUM_OF_IC_COMMAND; i++)             /* cmd array has 16 instruction commands */
-				{
-					if(strcmp(label, cmd[i].name)==0)
-					{
-						valid_label=0;      /* Mark label as invalid */
-						error=1;            /* Set global error flag */
-						fprintf(stderr,"error in line:%d, label cannot be the name of a command: %s\n",sum_of_row, label);
-						break;
 					}
 				}
 			}
@@ -92,8 +78,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 				if(token!=NULL)
 				{	/* Check if label precedes .entry or .extern (which is invalid) */
 					if (strcmp(token, ".entry") == 0 || strcmp(token, ".extern") == 0) {
-						fprintf(stderr, "error in line:%d, label cannot precede .entry or .extern: %s\n",sum_of_row, label);
-						error = 1;          /* Set global error flag */
+						fprintf(stdout, "error in line:%d, label cannot precede .entry or .extern: %s\n",sum_of_row, label);
 						continue;           /* Skip this line */
 					}
 					found_command=0;                /* Initialize command found flag */
@@ -124,7 +109,7 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					/* If valid command found, add label to symbol table and process command */
 					if(found_command)
 					{	/* Add label to symbol table: name, type, address, ex_en=2 (regular label) */
-						add_SEMEL(label, type, addres, SEMELS, semel_count, 2);
+						add_SEMEL(label, type, addres, SEMELS, semel_count, ex_en_rgular_label,array,struct_DC, extern_labels, count_of_extern_labels, macro_count, &macros);
 						if(SEMELS!=NULL)
 						{	/* Extract part of line after colon for command processing */
 				 			colon = strchr(row, ':');   /* Find colon in original line */
@@ -182,17 +167,14 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 								if(token2==NULL)
 								{
 									error=1;        /* Set global error flag */
-									fprintf(stderr, "missing label in func extern\n");
+									fprintf(stdout, "missing label in func extern\n");
 									continue;       /* Skip this line */
 								}
 								/* Add external label to symbol table */
-								if (is_valid_label_format(token2))
-									add_SEMEL(token2,2/*type for extern*/,0, SEMELS, semel_count, 1);
+								if (is_valid_label_format(token2,semel_type,cmd))
+									add_SEMEL(token2,type_ex,0, SEMELS, semel_count, ex_en_ex_label,array,struct_DC, extern_labels, count_of_extern_labels, macro_count, &macros);
 								else
-								{
-									fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
 									error=1;        /* Set global error flag */
-								}
 							}
 							/* Process .entry directive */
 							if(strcmp(token, ".entry")==0)
@@ -201,24 +183,21 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 								if(token2==NULL)
 								{
 									error=1;        /* Set global error flag */
-									fprintf(stderr, "missing label in func entry\n");
+									fprintf(stdout, "missing label in func entry\n");
 									continue;       /* Skip this line */
 								}
 								found_command = 1;  /* Mark as valid command */
 								/* Add entry label to symbol table */
-								if (is_valid_label_format(token2))
-									add_SEMEL(token2,1/*type for entry*/,1, SEMELS, semel_count, 0);
+								if (is_valid_label_format(token2,semel_type,cmd))
+									add_SEMEL(token2,type_en,1, SEMELS, semel_count, ex_en_en_label,array,struct_DC, extern_labels, count_of_extern_labels, macro_count, &macros);
 								else
-								{
-									fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
 									error=1;        /* Set global error flag */
-								}
 							}
 						}
 					}
 					else
 					{	/* No command found after valid label */
-						fprintf(stderr,"error in line:%d, unknown command after label: %s\n", sum_of_row,token);
+						fprintf(stdout,"error in line:%d, unknown command after label: %s\n", sum_of_row,token);
 						error=1;                    /* Set global error flag */
 					}
 				}
@@ -289,16 +268,16 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					if(token2==NULL)
 					{
 						error=1;                /* Set global error flag */
-						fprintf(stderr, "missing label in func extern\n");
+						fprintf(stdout, "missing label in func extern\n");
 						continue;               /* Skip this line */
 					}
 					found_command = 1;              /* Mark command as found */
 					/* Add external label to symbol table */
-					if (is_valid_label_format(token2))
-						add_SEMEL(token2,2,0, SEMELS, semel_count, 1);
+					if (is_valid_label_format(token2,semel_type,cmd))
+						add_SEMEL(token2,type_ex,0, SEMELS, semel_count, ex_en_ex_label,array,struct_DC, extern_labels, count_of_extern_labels, macro_count, &macros);
 					else
 					{
-						fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
+						fprintf(stdout, "error in line:%d Invalid label\n",sum_of_row);
 						error=1;                /* Set global error flag */
 					}
 				}
@@ -309,16 +288,16 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
 					if(token2==NULL)
 					{
 						error=1;                /* Set global error flag */
-						fprintf(stderr, "error in line:%d missing label in func entry\n",sum_of_row);
+						fprintf(stdout, "error in line:%d missing label in func entry\n",sum_of_row);
 						continue;               /* Skip this line */
 					}
 					found_command = 1;              /* Mark command as found */
 					/* Add entry label to symbol table */
-					if (is_valid_label_format(token2))
-						add_SEMEL(token2,1,1, SEMELS, semel_count, 0);
+					if (is_valid_label_format(token2, semel_type,cmd))
+						add_SEMEL(token2,type_en,1, SEMELS, semel_count, ex_en_en_label,array,struct_DC, extern_labels, count_of_extern_labels, macro_count, &macros);
 					else
 					{
-						fprintf(stderr, "error in line:%d Invalid label\n",sum_of_row);
+						fprintf(stdout, "error in line:%d Invalid label\n",sum_of_row);
 						error=1;                /* Set global error flag */
 					}
 				}
@@ -340,35 +319,86 @@ void row_analysis(FILE * f , int macro_count, macro** macros, command cmd[],comm
     		free(macros);                               /* Free macro array */
 	}
 
-int is_valid_label_format(const char* label) 
+int is_valid_label_format( char* label_mcro, int type,command cmd[]) 
 {
 	size_t i;                                   /* Loop counter for character validation */
-    	size_t len = strlen(label);                 /* Length of label string */
-    
+    	size_t len = strlen(label_mcro);                 /* Length of label string */
+        char* DC_command_without_point[]={"string","data","mat","extern","entry"};
+
     	/* Check if label exceeds maximum allowed length */
     	if (len >MAX_LEN_OF_LABEL ) 
 	{
-        	fprintf(stderr, "error in line %d: label too long (max 30 characters): %s\n", sum_of_row,label);
+		if(type==semel_type)
+        		fprintf(stdout, "error in line %d: label too long : %s\n", sum_of_row,label_mcro);
+		else
+			fprintf(stdout, "error, mcro too long : %s\n",label_mcro);
 		error=1;                            /* Set global error flag */
         	return 0;                           /* Return invalid */
     	}
     	/* Check if label starts with alphabetic character */
-    	if (!isalpha(label[0])) 
+    	if (!isalpha(label_mcro[0])) 
 	{
-        	fprintf(stderr, "error in line:%d, label must start with a letter: %s\n",sum_of_row, label);
+		if(type==semel_type)
+        		fprintf(stdout, "error in line:%d,label must start with a letter: %s\n",sum_of_row, label_mcro);
+		else
+			fprintf(stdout, "error,mcro must start with a letter: %s\n", label_mcro);
 		error=1;                            /* Set global error flag */
         	return 0;                           /* Return invalid */
     	}
     	/* Check if all remaining characters are alphanumeric */
     	for(i = 1; i < len; i++) 
 	{
-        	if (!isalnum(label[i])) 
+        	if (!isalnum(label_mcro[i])&&label_mcro[i]!='_') 
 		{
-            		fprintf(stderr, "error in line:%d, label can contain only letters and digits: %s\n", sum_of_row,label);
+			if(type==semel_type)
+            			fprintf(stdout, "error in line:%d,label can contain only letters and digits: %s\n", sum_of_row,label_mcro);
+			else
+				fprintf(stdout, "error, mcro can contain only letters and digits: %s\n",label_mcro);
 			error=1;                    /* Set global error flag */
             		return 0;               /* Return invalid */
         	}
+		if(label_mcro[i]=='_'&& type==semel_type)
+		{
+			fprintf(stdout, "error in line:%d, label can contain only letters and digits: %s\n", sum_of_row,label_mcro);
+			error=1;                    /* Set global error flag */
+            		return 0;  
+		}
+	}
+	for(i=0; i<NUM_OF_IC_COMMAND; i++)             /* cmd array has 16 instruction commands */
+	{
+		if(strcmp(label_mcro, cmd[i].name)==0)
+		{
+			error=1;            /* Set global error flag */
+			if(type==semel_type)
+				fprintf(stdout,"error in line:%d, label cannot be the name of a command: %s\n",sum_of_row ,label_mcro);
+			else
+				fprintf(stdout,"error, mcro cannot be the name of a command: %s\n",label_mcro);
+			return 0;
+		}
+				
     	}
+	if (strcmp(label_mcro, "mcro") == 0 || strcmp(label_mcro, "mcroend") == 0 || reg(label_mcro))
+
+	{
+		error=1;            /* Set global error flag */
+		if(type==semel_type)
+			fprintf(stdout,"error in line:%d, invalid label name \n",sum_of_row);
+		else
+			fprintf(stdout,"error, invalid mcro name \n");
+		return 0;
+	}
+	for (i = 0; i < NUM_OF_DC_COMMAND; i++)         /* cmd_1_arg array has 9 commands */
+	{
+		if (strcmp(label_mcro, DC_command_without_point[i]) == 0) 
+		{	
+			error=1;            /* Set global error flag */
+			if(type==semel_type)
+				fprintf(stdout,"error in line:%d, label cannot be the name of a DC command: %s\n",sum_of_row ,label_mcro);
+			else
+				fprintf(stdout,"error, mcro cannot be the name of a DC command: %s\n" ,label_mcro);
+			return 0;
+		}
+	}	
     return 1;                                   /* Return valid */
 }
 
@@ -380,7 +410,7 @@ void clear_row_arry()
     	while ((c = getchar()) != '\n' && c != EOF);
 }
 
-void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_count, int ex_en)
+void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_count, int ex_en,binary_code **array, binary_directive **struct_DC, extern_label**extern_labels, int *count_of_extern_labels, int macro_count, macro*** macros)
 {
 	SEMEL* new_SEMEL;                           /* Pointer to new symbol structure */
 	SEMEL** temp;                               /* Temporary pointer for reallocation */
@@ -393,27 +423,27 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 		{
 			if (strcmp(label, (*SEMELS)[j]->name) == 0) 
 			{	/* Handle conflicts between regular and extern labels */
-				if(((*SEMELS)[j]->ex_en==1 && ex_en==2 )||((*SEMELS)[j]->ex_en==2 && ex_en==1))
+				if(((*SEMELS)[j]->ex_en==ex_en_ex_label && ex_en==ex_en_rgular_label )||((*SEMELS)[j]->ex_en==ex_en_rgular_label && ex_en==ex_en_ex_label))
 				{	
-					fprintf(stderr, "error in line:%d a regular label cannot be an extern label and vice versa.\n",sum_of_row);
+					fprintf(stdout, "error in line:%d a regular label cannot be an extern label and vice versa.\n",sum_of_row);
 					error=1;            /* Set global error flag */
 					return;
 				}
 				/* Handle conflicts between extern and entry labels */
-				else if(((*SEMELS)[j]->ex_en==1 && ex_en==0) || ((*SEMELS)[j]->ex_en==0 && ex_en==1))
+				else if(((*SEMELS)[j]->ex_en==ex_en_ex_label && ex_en==ex_en_en_label) || ((*SEMELS)[j]->ex_en==ex_en_en_label && ex_en==ex_en_ex_label))
 				{
-					fprintf(stderr, "error in line:%d, a label cannot be both extern and entry.\n",sum_of_row);
+					fprintf(stdout, "error in line:%d, a label cannot be both extern and entry.\n",sum_of_row);
 					error=1;            /* Set global error flag */
 					return;
 				}
 				/* Update extern label to entry */
-				else if((*SEMELS)[j]->ex_en==2 &&  ex_en==0)
+				else if((*SEMELS)[j]->ex_en==ex_en_rgular_label &&  ex_en==ex_en_en_label)
 				{
 					(*SEMELS)[j]->ex_en=ex_en;  /* Change extern to entry */      
 					return;
 				}
 				/* Update regular label with address information */
-				else if((*SEMELS)[j]->ex_en==0 && ex_en==2)
+				else if((*SEMELS)[j]->ex_en==ex_en_en_label && ex_en==ex_en_rgular_label)
 				{
 					if(addres==IC)              /* If address is instruction counter */
 						(*SEMELS)[j]->type=0;   /* Set type to instruction */
@@ -421,9 +451,9 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 					return;
 				}
 				/* Handle duplicate regular label definitions */
-				else if((*SEMELS)[j]->ex_en==2 && ex_en==2)
+				else if((*SEMELS)[j]->ex_en==ex_en_rgular_label && ex_en==ex_en_rgular_label)
 				{
-					fprintf(stderr, "error in line:%d, label already defined: %s\n",sum_of_row, label);
+					fprintf(stdout, "error in line:%d, label already defined: %s\n",sum_of_row, label);
 					error = 1;          /* Set global error flag */
 					return;
 				}
@@ -434,18 +464,15 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 	new_SEMEL = (SEMEL*)malloc(sizeof(SEMEL));
 	if (new_SEMEL == NULL) 
 	{
-                fprintf(stderr, "error, memory allocation failed\n");
-                error = 1;                      /* Set global error flag */
-		return;
+                fprintf(stdout, "error, memory allocation failed\n");
+                error_allocation(macro_count, macros, *SEMELS, semel_count, array, struct_DC, extern_labels, count_of_extern_labels);
 	}
 	/* Allocate and copy label name */
         new_SEMEL->name = (char*)malloc(strlen(label) + 1);  /* +1 for null terminator */
         if (new_SEMEL->name == NULL) 
 	{
-                fprintf(stderr, "error, memory allocation failed\n");
-                error = 1;                      /* Set global error flag */
-                free(new_SEMEL);                /* Clean up partial allocation */
-		return;
+                fprintf(stdout, "error, memory allocation failed\n");
+                error_allocation(macro_count, macros, *SEMELS, semel_count, array, struct_DC, extern_labels, count_of_extern_labels);
 	}
         strcpy(new_SEMEL->name, label);         /* Copy label name to allocated memory */
 	/* Set symbol properties */
@@ -456,11 +483,8 @@ void add_SEMEL(char* label, int type, int addres, SEMEL*** SEMELS, int* semel_co
 	temp = realloc(*SEMELS, (*semel_count + 1) * sizeof(SEMEL*));
 	if (!temp) 
 	{
-    		fprintf(stderr, "error, memory allocation failed\n");
-    		error = 1;                      /* Set global error flag */
-		free(new_SEMEL->name);          /* Clean up name allocation */
-        	free(new_SEMEL);                /* Clean up structure allocation */
-    		return;
+    		fprintf(stdout, "error, memory allocation failed\n");
+    		error_allocation(macro_count, macros, *SEMELS, semel_count, array, struct_DC, extern_labels, count_of_extern_labels);
 	}
 	*SEMELS = temp;                         /* Update symbol table pointer */
         (*SEMELS)[*semel_count] = new_SEMEL;    /* Add new symbol to table */
@@ -556,27 +580,21 @@ void ic_count_2_arg(char* row)
 	IC += ic_extra;                             /* Add all additional words to instruction counter */
 }
 
-
 void dc_count_data(char* row) 
 {
-	char copy_row[256];		/* Local buffer for a safe copy of the row */
+	char copy_row[MAX_LEN_OF_ROW];		/* Local buffer for a safe copy of the row */
 	char* p;				/* Pointer for iterating over the copied row */
 
 	strcpy(copy_row, row);	/* Copy the input line to avoid modifying the original */
-
 	p = copy_row;			/* Initialize pointer to the beginning of the copied row */
 	while (*p != '\n' && *p != '\0') 
 	{
 		if (*p == ',') 
-		{
 			DC++;			/* Count each comma as a separator between values */
-		}
 		p++;				/* Move to the next character */
 	}
-
 	DC++;					/* Account for the last (or only) value after the last comma */
 }
-
 
 void dc_count_string(char* row) 
 {
@@ -586,8 +604,6 @@ void dc_count_string(char* row)
     	char* end_string;                           /* Pointer to closing quote */
     	int string_length;                          /* Length of string content */
     
-	/*if(!check_commas(row,0))*/                       /* Fix comma formatting in the row */
-		/*return 0;*/
     	command = strtok(row, " \t");               /* Skip .string command */
     	if(command == NULL)
         	return;
@@ -601,7 +617,7 @@ void dc_count_string(char* row)
     	start_string = strchr(op1, '"');           /* Find first double quote */
     	if (start_string == NULL) 
         	return;
-    	end_string = strchr(start_string + 1, '"'); /* Find closing double quote */
+    	end_string = strrchr(start_string + 1, '"'); /* Find closing double quote */
     	if (end_string == NULL) 
         	return;
     	/* Calculate string length between quotes */
@@ -616,10 +632,8 @@ void dc_count_mat(char* row)
     	char* token1;                               /* Pointer for parsing brackets */
 	char* token2;                               /* Pointer for bracket end position */
 	int i=0;                                    /* Character position counter */
-	char row_str[225];                          /* Buffer for row dimension string */
-	char col_str[225];                          /* Buffer for column dimension string */
-	char* data;                                 /* Pointer to matrix data values */
-	int data_count=0;                           /* Counter for actual data values provided */
+	char row_str[MAX_LEN_OF_ROW ];                          /* Buffer for row dimension string */
+	char col_str[MAX_LEN_OF_ROW ];                          /* Buffer for column dimension string */
 
 	/* Find first opening bracket for row dimension */
 	token1 = strchr(row, '[');
@@ -656,19 +670,5 @@ void dc_count_mat(char* row)
 	}
 	col_str[i]='\0';                        /* Null-terminate the column string */
 	col= atoi(col_str);                     /* Convert string to integer */
-	/* Point to data section after second closing bracket */
-	data=token2+1;
-	/* Tokenize data values using comma and whitespace delimiters */
-	data = strtok(data, " ,\t\n\r");
-	if(data==NULL)	/* No data provided - allocate space for full matrix */
-		DC+=col*rows;                       /* Add total matrix size to data counter */
-	else
-	{	/* Count actual data values provided */
-		while(data!=NULL)
-		{
-			data_count++;               /* Increment data value counter */
-			data = strtok(NULL, " ,\t\n\r");  /* Get next data token */
-		}
-	DC+= data_count;                        /* Add actual data count to data counter */
-	}
+	DC+=col*rows;                       /* Add total matrix size to data counter */
 }

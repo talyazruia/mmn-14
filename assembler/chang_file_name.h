@@ -17,7 +17,7 @@
  * Returns:
  *   A pointer to the opened file, or NULL if an error occurs.
  */
-FILE *end_file_name_as(int argc, char * argv[], int i);
+FILE * end_file_name_as(int argc, char* argv[], int i,int macro_count, macro*** macros, SEMEL** semels, int* semel_count, binary_code **array, binary_directive **struct_DC, extern_label**extern_labels, int *count_of_extern_labels);
 
 /*
  * Creates and opens a new file with a specific extension (.am, .ob, .ent, .ext),
@@ -34,7 +34,7 @@ FILE *end_file_name_as(int argc, char * argv[], int i);
  * Returns:
  *   A pointer to the created file, or NULL if an error occurs.
  */
-FILE *end_file_name(int argc, char * argv[], int i, int file_type); 
+FILE* end_file_name(int argc, char* argv[], int i, int file_type, int macro_count, macro*** macros, SEMEL** semels, int* semel_count, binary_code **array, binary_directive **struct_DC, extern_label**extern_labels, int *count_of_extern_labels); 
 
 #endif
 

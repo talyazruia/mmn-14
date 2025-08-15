@@ -15,12 +15,15 @@
  * current_size_directive_struct  - Number of data words currently stored.
  * sum_of_row - Logical line number for diagnostics across passes and files.
  */
-int IC = 100;
+int IC = start_IC;
 int DC = 0;
 int error = 0;
 int current_size_instaction_struct = 0;
 int current_size_directive_struct = 0;
 int sum_of_row = 0;
+int count_of_entry_labels = 0;
+	
+void print_binary_code_array(binary_code* array, int size);
 
 /*
  * main - Assembler driver.
@@ -76,16 +79,12 @@ int main(int argc, char *argv[])
 	FILE *f_used;					/* Stream used for macro-expanded source (.am or original) */
 	macro **macros;					/* Macro table (second-level pointer) */
 	int macro_count;				/* Number of collected macros */
-
 	SEMEL **SEMELS = NULL;				/* Symbol table (array of pointers to SEMEL) */
 	int semel_count = 0;				/* Number of symbols in table */
-
 	binary_code *array = NULL;			/* Instruction words buffer (2*char per word) */
 	binary_directive *struct_DC = NULL;		/* Data words buffer (2*char per word) */
-
 	extern_label *extern_labels = NULL;		/* Collected extern usages (name + address) */
 	int count_of_extern_labels = 0;			/* Count of extern usage records */
-
 	int i = 1;					/* argv index for input files */
 	int j = 0;					/* iteration counter for cleanups */
 	int k = 0;					/* iteration counter for debug prints */
@@ -95,22 +94,29 @@ int main(int argc, char *argv[])
 	if (argc == 1)
 	{
 		fprintf(stderr, "error, ther no input files.\n");
-		error = 1;
-		return 1;
+		return 0;
 	}
-
 	/* Process each input file independently */
 	for (; i < argc; i++)
 	{
 		/* Reset global state for this file */
 		error = 0;
-		IC = 100;
+		IC = start_IC;
 		DC = 0;
 		error = 0;
 		current_size_instaction_struct = 0;
 		current_size_directive_struct = 0;
 		sum_of_row = 0;
-
+		count_of_entry_labels = 0;
+		/* Release any previous extern symbol table before starting a new file */
+		if (extern_labels != NULL) 
+		{
+        		for (j = 0; j < count_of_extern_labels; j++) 
+            			free(extern_labels[j].name);
+        		free(extern_labels);
+        		extern_labels = NULL;
+    		}
+    		count_of_extern_labels = 0;
 		/* Release any previous symbol table before starting a new file */
 		if (SEMELS != NULL)
 		{
@@ -126,153 +132,125 @@ int main(int argc, char *argv[])
 			SEMELS = NULL;
 			semel_count = 0;
 		}
-
 		/* Release previous instruction buffer if any */
 		if (array != NULL)
 		{
 			free(array);
 			array = NULL;
 		}
-
 		/* Release previous data buffer if any */
 		if (struct_DC != NULL)
 		{
 			free(struct_DC);
 			struct_DC = NULL;
 		}
-
 		/* Resolve and open source file (.as) -> f1 */
-		f1 = end_file_name_as(argc, argv, i);
+		f1 = end_file_name_as(argc, argv, i , macro_count, &macros, SEMELS, &semel_count, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
 		if (f1 != NULL)
 		{
 			/* Expand macros into a working stream (possibly .am) */
 			macros = NULL;
 			macro_count = 0;
-			f_used = macro_analysis(f1, cmd, cmd1, argc, argv, i, &macros, &macro_count);
-
+			f_used = macro_analysis(f1, cmd, argc, argv, i, &macros, &macro_count, SEMELS, &semel_count, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
 			if (f_used != NULL)
 			{
 				/* -------- First pass -------- */
 				sum_of_row = 0;
-				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count);
-
+				row_analysis(f_used, macro_count, macros, cmd, cmd1, &SEMELS, &semel_count, &array, &struct_DC, &extern_labels ,&count_of_extern_labels);
 				/* Fix data symbol addresses by adding final IC */
 				update_data_symbol_addresses(SEMELS, &semel_count);
-
-				/* Optional diagnostics: print symbols and IC/DC after pass 1 */
-				/* semel print */
+			/* Optional diagnostics: print symbols and IC/DC after pass 1 */
+			/* semel print */
 				for (k = 0; k < semel_count; k++)
-				{
 					fprintf(stderr, "%s %d %d\n", SEMELS[k]->name, SEMELS[k]->addres, SEMELS[k]->ex_en);
-				}
-				/* IC DC print */
+			/* IC DC print */
 				fprintf(stderr, "%d %d\n", IC, DC);
-
 				/* Prepare for second pass */
 				rewind(f_used);
-				ic = IC;		/* Save final IC from pass 1 (for .ob header) */
-				IC = 100;		/* Reset IC to base for emission */
+				ic = IC;		/* Save final IC from pass 1 for .ob  */
+				IC = start_IC;		/* Reset IC to base for emission */
 				sum_of_row = 0;
-
 				/* -------- Second pass -------- */
-				second_row_analysis(f_used, cmd, &SEMELS, &semel_count, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
-
-				/* Optional diagnostics: dump emitted instruction words in binary */
+				second_row_analysis(f_used, cmd, &SEMELS, &semel_count, &array, &struct_DC, &extern_labels, &count_of_extern_labels,macro_count, macros);
+			/* Optional diagnostics: dump emitted instruction words in binary */
 				print_binary_code_array(array, current_size_instaction_struct);
-
 				/* Optional diagnostics: print extern references */
-				/* extern print */
+			/* extern print */
 				for (k = 0; k < count_of_extern_labels; k++)
-				{
 					fprintf(stderr, "%s %d \n", extern_labels[k].name, extern_labels[k].addres);
-				}
-
 				/* Generate output files only if:
-				 *  - No errors were reported (error == 0)
-				 *  - Total words (IC from pass1 + DC) fit the allowed maximum
-				 */
+				*  - No errors were reported (error == 0)
+				*  - Total words (IC from pass1 + DC) fit the allowed maximum
+				*/
 				if (error == 0 && ic + DC <= MAX_NUMBES_OF_ROW_IN_INPUT)
 				{
 					/* -------- .ob file -------- */
-					f2_ob = end_file_name(argc, argv, i, OB);
+					f2_ob = end_file_name(argc, argv, i, OB, macro_count, &macros, SEMELS, &semel_count, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
 					if (f2_ob == NULL)
 					{
 						error = 1;
 						return 0;
 					}
 					/* Header: IC/DC (base-4 as required by BinaryToBase4 with ENCODING_IC_DC) */
-					BinaryToBase4((void**)&array, argc, argv, i, f2_ob, ENCODING_IC_DC, &semel_count, ic - FIRST_ADDRES);
+					BinaryToBase4(argc, argv, i, f2_ob, ENCODING_IC_DC, &semel_count, ic - FIRST_ADDRES, macro_count, &macros, SEMELS, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
 					fprintf(f2_ob, "\n");
-
 					/*instruction words */
-					BinaryToBase4((void**)&array, argc, argv, i, f2_ob, ENCODING_IC_COMMAND, &semel_count, 0);
-
+					BinaryToBase4(argc, argv, i, f2_ob, ENCODING_IC_COMMAND, &semel_count, 0, macro_count, &macros, SEMELS, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
 					/* directive words */
-					BinaryToBase4((void**)&struct_DC, argc, argv, i, f2_ob, ENCODING_DC_COMMAND, &semel_count, 0);
+					BinaryToBase4(argc, argv, i, f2_ob, ENCODING_DC_COMMAND, &semel_count, 0, macro_count, &macros, SEMELS, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
 					fclose(f2_ob);
-
 					/* -------- .ext file -------- */
-					f3_ex = end_file_name(argc, argv, i, EXT);
-					if (f3_ex == NULL)
+					if(count_of_extern_labels>0)
 					{
-						error = 1;
-						return 0;
+						f3_ex = end_file_name(argc, argv, i, EXT, macro_count, &macros, SEMELS, &semel_count, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
+						if (f3_ex == NULL)
+						{
+							fprintf(stderr, "error Could not open %s.ext file\n", argv[i]);
+							error = 1;
+							return 0;
+						}
+						BinaryToBase4(argc, argv, i, f3_ex, ENCODING_EXTERN_FILE, &semel_count, 0, macro_count, &macros, SEMELS, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
+						fclose(f3_ex);
 					}
-					BinaryToBase4((void**)&extern_labels, argc, argv, i, f3_ex, ENCODING_EXTERN_FILE, &count_of_extern_labels, 0);
-					fclose(f3_ex);
-
 					/* -------- .ent file -------- */
-					f4_en = end_file_name(argc, argv, i, ENT);
-					if (f4_en == NULL)
+					fprintf(stderr, "%d\n", count_of_entry_labels);
+					if(count_of_entry_labels>0)
 					{
-						error = 1;
-						return 0;
+						f4_en = end_file_name(argc, argv, i, ENT, macro_count, &macros, SEMELS, &semel_count, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
+						if (f4_en == NULL)
+						{
+							fprintf(stderr, "error Could not open %s.ent file\n", argv[i]);
+							error = 1;
+							return 0;
+						}
+						BinaryToBase4(argc, argv, i, f4_en, ENCODING_ENTERY_FILE, &semel_count, 0, macro_count, &macros, SEMELS, &array, &struct_DC, &extern_labels, &count_of_extern_labels);
+						fclose(f4_en);
 					}
-					BinaryToBase4((void**)SEMELS, argc, argv, i, f4_en, ENCODING_ENTERY_FILE, &semel_count, 0);
-					fclose(f4_en);
-
 					/* Close the working source stream */
 					fclose(f_used);
 				}
-				else
-				{
+				else if(error!=0)
 					/* Skip outputs when errors were detected or size exceeded */
 					fprintf(stderr, "errors found - skipping file generation for %s\n", argv[i]);
-				}
-
+				else if(ic + DC < MAX_NUMBES_OF_ROW_IN_INPUT)
+					fprintf(stderr, "more then %d rows - skipping file generation for %s\n",MAX_NUMBES_OF_ROW_IN_INPUT-start_IC, argv[i]);
 				/* Note:
 				 * The following block, if enabled, would remove the temporary .am file
 				 * upon errors. It is intentionally commented to preserve intermediates.
 				 */
-				/*
-				if (error != 0)
-				{
-					char* temp_file_name = (char*)malloc(strlen(argv[i]) + strlen(".am") + 1);
-					if (temp_file_name != NULL)
-					{
-						strcpy(temp_file_name, argv[i]);
-						strcat(temp_file_name, ".am");
-						remove(temp_file_name);
-						free(temp_file_name);
-					}
-				}
-				*/
 			}
-			else
-			{
+			else 
 				/* Macro analysis/open failed; continue with next file */
 				continue;
-			}
 		}
 		else
 		{
 			/* Could not open the requested source */
 			fprintf(stderr, "error Could not open source file for %s\n", argv[i]);
+			error=1;
 		}
 	}
-
 	/* -------- Final cleanup for last processed file -------- */
-
 	/* Free symbol table */
 	if (SEMELS != NULL)
 	{
@@ -286,7 +264,6 @@ int main(int argc, char *argv[])
 		}
 		free(SEMELS);
 	}
-
 	/* Free extern labels */
 	if (extern_labels != NULL)
 	{
@@ -294,19 +271,12 @@ int main(int argc, char *argv[])
 			free(extern_labels[j].name);
 		free(extern_labels);
 	}
-
 	/* Free instruction buffer */
 	if (array != NULL)
-	{
 		free(array);
-	}
-
 	/* Free data buffer */
 	if (struct_DC != NULL)
-	{
 		free(struct_DC);
-	}
-
 	return 0;
 }
 

@@ -1,126 +1,98 @@
 #include "encoding.h"
 #include "second_row_analysis.h"
-#include "row_analysis.h"
+/*#include "row_analysis.h"*/
 #include "validation.h"
 
-void second_row_analysis(FILE *f, command cmd[], SEMEL*** SEMELS, int* semel_count, binary_code **array, binary_directive **struct_DC, extern_label** extern_labels, int *count_of_extern_labels)
+void second_row_analysis(FILE *f, command cmd[], SEMEL*** semels, int* semel_count, binary_code **array, binary_directive **struct_DC, extern_label**extern_labels, int *count_of_extern_labels, int macro_count, macro** macros)
 {
-	char row[MAX_LEN_OF_ROW];			/* Input line buffer */
+	char row[MAX_LEN_OF_ROW];			/* Input line buffer - stores each line read from file */
 	char row_copy[MAX_LEN_OF_ROW];		/* Copy for tokenizing (strtok modifies the source) */
-	char *token;						/* First token of the line */
+	char *token;						/* First token of the line - could be label, instruction, or directive */
 	size_t len;							/* Length of the first token */
-	int i = 0;							/* Loop index for command lookup */
+	int i = 0;							/* Loop index for command lookup in cmd[] array */
 	char *new_row;						/* Pointer to the line content after a label (after ':') */
-	char *colon;						/* Pointer to ':' if a label exists */
-	int found = 0;						/* 1 if a known command/directive was found, else 0 */
-
+	char *colon;						/* Pointer to ':' if a label exists on the line */
+	int found = 0;						/* Flag: 1 if a known command/directive was found, else 0 */
 	/* Second pass: read each line and generate code/data */
+	/* This loop processes every line in the assembly file */
 	while (fgets(row, sizeof(row), f))
 	{
-		sum_of_row++;					/* Count lines for error messages */
+		sum_of_row++;	/* Global counter: track current line number for error messages */
 		found = 0;
-
-		/* Validate line length (must contain '\n') */
-		if (strchr(row, '\n') == NULL)
-		{
-			error = 1;
-			clear_row_arry();			/* Flush the rest of the long line */
-			continue;
-		}
-
-		/* Skip comment lines */
+		/* Skip comment lines (lines starting with ';') */
 		if (row[0] == ';')
 			continue;
-
-		/* Prepare tokenization on a safe copy */
+		/* Prepare tokenization on a safe copy (strtok modifies the string) */
 		strcpy(row_copy, row);
-		token = strtok(row_copy, " \t\n\r");
+		token = strtok(row_copy, " \t\n\r");	/* Get first token, splitting on whitespace */
 		if (token == NULL)				/* Skip empty/whitespace-only lines */
 			continue;
-
-		/* If the first token is a label (ends with ':') */
+		/* Check if the first token is a label (ends with ':') */
 		len = strlen(token);
 		if (len > 0 && token[len - 1] == ':')
-		{
+		{	/* CASE: Line starts with a label */
 			/* Move to the token after the label to identify the directive/command */
-			token = strtok(NULL, " \t\n\r");
+			token = strtok(NULL, " \t\n\r");	/* Get the instruction/directive after the label */
 			if (token != NULL)
-			{
-				/* new_row points to the substring following ':' in the original line */
+			{	/* new_row points to the substring following ':' in the original line */
+				/* This is needed because we want to process the rest of the line after the label */
 				colon = strchr(row, ':');
 				if (colon != NULL)
-					new_row = colon + 1;
+					new_row = colon + 1;		/* Point to content after the colon */
 				else
-					new_row = row;
-
-				/* Try instruction mnemonics first */
+					new_row = row;				/* Fallback to original line */
+				/* Try to match against instruction mnemonics first */
 				for (i = 0; i < NUM_OF_IC_COMMAND; i++)
 				{
 					if (strcmp(token, cmd[i].name) == 0)	/* cmd[] contains 16 instructions */
 					{
-						IC_command_analysis(new_row, *(SEMELS), semel_count, cmd, array, extern_labels, count_of_extern_labels);
+						/* Found a matching instruction - analyze it and generate code */
+						IC_command_analysis(new_row, *(semels), semel_count, cmd, array, extern_labels, count_of_extern_labels,struct_DC, macro_count, macros);
 						found = 1;
 						break;
 					}
 				}
-
-				/* Directives after a label */
+				/* If not an instruction, check if it's a directive after a label */
 				if (strcmp(token, ".string") == 0)
-				{
-					string(new_row, struct_DC);
-				}
+					string(new_row, struct_DC,macro_count, &macros,*semels,semel_count,array,extern_labels,count_of_extern_labels);	/* Process string directive */
 				else if (strcmp(token, ".mat") == 0)
-				{
-					mat(new_row, struct_DC);
-				}
+					mat(new_row, struct_DC,macro_count, &macros,*semels,semel_count,array,extern_labels,count_of_extern_labels);/* Process matrix directive */
 				else if (strcmp(token, ".data") == 0)
-				{
-					data(new_row, struct_DC);
-				}
+					data(new_row, struct_DC,macro_count, &macros,*semels,semel_count,array,extern_labels,count_of_extern_labels);		/* Process data directive */
 				else if (strcmp(token, ".entry") == 0 || strcmp(token, ".extern") == 0)
-				{
-					entry_extern(new_row);
-				}
+					entry_extern(new_row);			/* Process entry/extern directives */
 				else if (found == 0)
-				{
+				{	/* Unknown command/directive found */
 					error = 1;
-					fprintf(stderr, "eror in line:%d unkown command", sum_of_row);
+					fprintf(stdout, "error in line: %d unkown command\n", sum_of_row);
 				}
 			}
 		}
 		else
-		{
-			/* No label: treat the first token as a command/directive */
+		{	/* CASE: No label - treat the first token as a command/directive */
+			/* Try to match against instruction mnemonics */
 			for (i = 0; i < NUM_OF_IC_COMMAND; i++)
 			{
 				if (strcmp(token, cmd[i].name) == 0)
-				{
-					IC_command_analysis(row, *(SEMELS), semel_count, cmd, array, extern_labels, count_of_extern_labels);
+				{	/* Found matching instruction - process entire line */
+					IC_command_analysis(row, *(semels), semel_count, cmd, array, extern_labels, count_of_extern_labels,struct_DC, macro_count, macros);
 					found = 1;
 					break;
 				}
 			}
-
+			/* If not an instruction, check if it's a directive */
 			if (strcmp(token, ".string") == 0)
-			{
-				string(row, struct_DC);
-			}
+				string(row,struct_DC,macro_count,&macros,*semels,semel_count,array,extern_labels,count_of_extern_labels);/* Process string directive */
 			else if (strcmp(token, ".mat") == 0)
-			{
-				mat(row, struct_DC);
-			}
+				mat(row, struct_DC,macro_count, &macros,*semels,semel_count,array,extern_labels,count_of_extern_labels);/* Process matrix directive */
 			else if (strcmp(token, ".data") == 0)
-			{
-				data(row, struct_DC);
-			}
+				data(row, struct_DC,macro_count, &macros,*semels,semel_count,array,extern_labels,count_of_extern_labels);/* Process data directive */
 			else if (strcmp(token, ".entry") == 0 || strcmp(token, ".extern") == 0)
-			{
-				entry_extern(row);
-			}
+				entry_extern(row);					/* Process entry/extern directives */
 			else if (found == 0)
-			{
+			{	/* Unknown command/directive */
 				error = 1;
-				fprintf(stderr, "error in line:%d unkown command\n", sum_of_row);
+				fprintf(stdout, "error in line: %d unkown command\n", sum_of_row);
 			}
 		}
 	}
@@ -128,88 +100,78 @@ void second_row_analysis(FILE *f, command cmd[], SEMEL*** SEMELS, int* semel_cou
 
 int is_valid_number(char *str, int mode)
 {
-	char *src, *dst, *endptr;
-	long val;
+	char *src, *dst, *endptr;		/* Pointers for string manipulation and parsing */
+	long val;						/* Parsed numeric value for range checking */
 
 	if (str == NULL)
 		return 0;
-
-	/* Trim leading space */
+	/* Trim leading whitespace */
 	while (isspace((unsigned char)*str))
 		str++;
-
 	/* Compact string to start (remove leading spaces in-place) */
+	/* This loop removes all spaces from the string */
 	src = str;
 	dst = str;
 	while (*src != '\0')
 		*dst++ = *src++;
 	*dst = '\0';
-
-	/* Trim trailing space */
+	/* Trim trailing whitespace */
 	dst = str + strlen(str) - 1;
 	while (dst >= str && isspace((unsigned char)*dst))
 		*dst-- = '\0';
-
-	/* Mode 0: require leading '#' with no space after it; strip it */
-	if (mode == 0)
+	/* Mode 0: Immediate mode - require leading '#' with no space after it */
+	if (mode == Immediate_mode)
 	{
 		if (*str != '#')
-			return 0;
+			return 0;					/* Must start with '#' */
 		if (isspace((unsigned char)str[1]))		/* No space allowed after '#' */
 			return 0;
-		memmove(str, str + 1, strlen(str));		/* Remove '#' */
+		memmove(str, str + 1, strlen(str));		/* Remove '#' from string */
 	}
-
-	/* Optional sign; mode 2 forbids negative numbers */
+	/* Handle optional sign; mode 2 forbids negative numbers */
 	if (*str == '+' || *str == '-')
 	{
-		if (mode == 2 && *str == '-')
-			return 0;
+		if (mode == positive_num && *str == '-')
+			return 0;					/* Mode 2: unsigned numbers only */
 	}
-
-	/* Validate digits (no embedded spaces) */
+	/* Validate that all characters are digits (no embedded spaces allowed) */
 	src = str;
 	while (*src && !isspace((unsigned char)*src))
 	{
 		if (*src == '+' || *src == '-')
 		{
-			src++;								/* Allow single sign */
+			src++;					/* Allow single sign character */
 			continue;
 		}
 		if (!isdigit((unsigned char)*src))
-			return 0;
+			return 0;				/* Non-digit character found */
 		src++;
 	}
-
 	/* Only whitespace is allowed after the number */
 	while (*src)
 	{
 		if (!isspace((unsigned char)*src))
-			return 0;
+			return 0;				/* Non-whitespace after number */
 		src++;
 	}
-
-	/* Range check (for modes 1 and 2) */
-	if (mode == 1 || mode == 2)
+	/* Range check for modes 1 and 2 (ensure number fits in int range) */
+	if (mode == valid_num || mode == positive_num)
 	{
-		val = strtol(str, &endptr, 10);
+		val = strtol(str, &endptr, 10);		/* Parse string to long */
 		if (str == endptr)
-			return 0;
-
-		/* Skip trailing space after parsed number */
+			return 0;						/* No digits were parsed */
+		/* Skip trailing whitespace after parsed number */
 		while (isspace((unsigned char)*endptr))
 			endptr++;
-
 		if (*endptr != '\0')
-			return 0;
-
+			return 0;						/* Extra characters after number */
+		/* Check if value fits in int range */
 		if (val < INT_MIN || val > INT_MAX)
 			return 0;
 	}
 	return 1;
 }
 
-/* Return 1 if str is a valid register token: r0..r7 (ignores surrounding spaces) */
 int reg(char *str)
 {
 	char *end;
@@ -217,12 +179,10 @@ int reg(char *str)
 
 	if (str == NULL)
 		return 0;
-
 	/* Trim leading spaces */
 	while (isspace(*str))
 		str++;
-
-	/* Trim trailing spaces */
+	/* Trim trailing spaces by null-terminating */
 	len = strlen(str);
 	end = str + len - 1;
 	while (end > str && isspace(*end))
@@ -230,55 +190,60 @@ int reg(char *str)
 		*end = '\0';
 		end--;
 	}
-
-	/* Format: 'r' + digit 0..7 and nothing more */
+	/* Valid format: 'r' + digit 0..7 and nothing more */
 	if (str[0] != 'r')
-		return 0;
+		return 0;						/* Must start with 'r' */
 	if (str[1] < '0' || str[1] > '7')
-		return 0;
+		return 0;						/* Must be followed by digit 0-7 */
 	if (str[2] != '\0')
-		return 0;
-
+		return 0;						/* Must be exactly 2 characters */
 	return 1;
 }
 
-int* valid_matrix(char *str, SEMEL** SEMELS, int* semel_count)
+int* valid_matrix(char *str, SEMEL** semels, int* semel_count, extern_label **extern_labels, int* count_of_extern_labels, binary_code** array, binary_directive **struct_DC,int macro_count, macro*** macros)
 {
-	char array_name[31];				/* Matrix symbol name */
-	char r1[31];						/* First index token (expected register) */
-	char r2[31];						/* Second index token (expected register) */
-	int *result = NULL;					/* [symbol_index, reg1_num, reg2_num] */
+	char array_name[MAX_LEN_OF_ROW];				/* Matrix symbol name (max 30 chars + null) */
+	char r1[MAX_LEN_OF_ROW];						/* First index token (expected to be register) */
+	char r2[MAX_LEN_OF_ROW];						/* Second index token (expected to be register) */
+	int *result = NULL;					/* Return array: [symbol_index, reg1_num, reg2_num] */
 	int i;
 	int matched;
+	char*p1;
+	char* p2;
 
-	result = (int*)malloc(3 * sizeof(int));	/* Allocate result array */
+	/* Allocate result array for 3 integers */
+	result = (int*)malloc(3 * sizeof(int));
 	if (result == NULL)
 	{
-		fprintf(stderr, "Error: memory allocation failed\n");
-		return NULL;
+		fprintf(stdout, "error: memory allocation failed\n");
+		error_allocation(macro_count, macros, semels, semel_count, array, struct_DC, extern_labels, count_of_extern_labels);
 	}
-
-	/* Parse: name[reg1][reg2] with optional spaces */
-	matched = sscanf(str, " %30[^[] [ %30[^] \t] ] [ %30[^] \t] ]", array_name, r1, r2);
-	if (matched != 3)
-	{
+	/* Parse matrix syntax: name[reg1][reg2] with optional spaces */
+	/* Format: up to 30 chars for name, then [register][register] */
+	matched = sscanf(str," %31[^ [][%30[^]]][%30[^]]]",array_name,r1,r2);
+	if (matched != 3 )
+	{	/* Parsing failed - not valid matrix syntax */
 		free(result);
 		return NULL;
 	}
-
-	/* Verify the matrix name exists and both indices are registers */
-	i = valid_SEMEL(array_name, SEMELS, semel_count);
-	if (i != -1)
+	/* Verify the matrix name exists in symbol table and both indices are valid registers */
+	i = valid_SEMEL(array_name, semels, semel_count);
+	if (i != -1)							/* Matrix name found in symbol table */
 	{
-		if (reg(r1) == 1 && reg(r2) == 1)
+		if (reg(r1) == 1 && reg(r2) == 1)	/* Both indices are valid registers */
 		{
-			result[0] = i;				/* Symbol index in table */
-			result[1] = r1[1] - '0';	/* rN -> N */
-			result[2] = r2[1] - '0';	/* rN -> N */
+			p1=r1;
+			p2=r2;
+			while (*p1 == ' ' || *p1 == '\t') 
+				p1++;
+			while (*p2 == ' ' || *p2 == '\t') 
+				p2++;
+			result[0] = i;					/* Symbol table index */
+			result[1] = atoi(p1 + 1);		/* Convert 'rN' to N for first register */
+			result[2] = atoi(p2 + 1);		/* Convert 'rN' to N for second register */
 			return result;
 		}
 	}
-
 	/* Not a valid matrix reference */
 	free(result);
 	return NULL;
@@ -293,7 +258,6 @@ int valid_SEMEL(char *str, SEMEL** SEMELS, int* semel_count)
 	/* Trim leading spaces */
 	while (isspace(*str))
 		str++;
-
 	/* Trim trailing spaces */
 	len = strlen(str);
 	end = str + len - 1;
@@ -302,634 +266,662 @@ int valid_SEMEL(char *str, SEMEL** SEMELS, int* semel_count)
 		*end = '\0';
 		end--;
 	}
-
 	/* Search by name in the symbol table */
 	while (i < *semel_count)
 	{
 		if (strcmp(SEMELS[i]->name, str) == 0)
-		{
+		{	/* Found the symbol - check if it can be used as operand */
 			if (SEMELS[i]->ex_en == 0)
-			{
-				/* Entry labels cannot be operands */
+			{	/* Entry labels cannot be used as operands (they're for export only) */
 				error = 1;
-				fprintf(stderr, "in line %d: entry label%s cant be operand", sum_of_row, SEMELS[i]->name);
+				fprintf(stdout, "in line %d: entry label %s cant be operand\n", sum_of_row, SEMELS[i]->name);
 				return -1;
 			}
-			return i;
+			return i;						/* Return symbol table index */
 		}
 		i++;
 	}
-	return -1;
+	return -1;								/* Symbol not found */
 }
 
-void add_to_extern_label(extern_label **extern_labels, int* COUNT_OF_EXTERN_LABEL, char *str)
+void add_to_extern_label(extern_label **extern_labels, int* count_of_extern_labels, char *str, SEMEL** semels, int* semel_count , binary_code** array, binary_directive **struct_DC,int macro_count, macro*** macros)
 {
-	if (*COUNT_OF_EXTERN_LABEL == 0)
-	{
-		/* First item: allocate the array */
+	if (*count_of_extern_labels == 0)
+	{	/* First external reference - allocate initial array */
 		*extern_labels = (extern_label*)malloc(sizeof(extern_label));
 		if (*extern_labels == NULL)
 		{
-			fprintf(stderr, "error, memory allocation failed\n");
-			error = 1;
-			return;
+			fprintf(stdout, "error, memory allocation failed\n");
+			error_allocation(macro_count, macros, semels, semel_count, array, struct_DC, extern_labels, count_of_extern_labels);
 		}
 	}
 	else
-	{
-		/* Grow the array by one */
-		extern_label *temp = (extern_label*)realloc(*extern_labels, (*COUNT_OF_EXTERN_LABEL + 1) * sizeof(extern_label));
+	{	/* Grow the array to accommodate one more external reference */
+		extern_label *temp = (extern_label*)realloc(*extern_labels, (*count_of_extern_labels + 1) * sizeof(extern_label));
 		if (temp == NULL)
 		{
-			fprintf(stderr, "error, memory allocation failed\n");
-			error = 1;
-			return;
+			fprintf(stdout, "error, memory allocation failed\n");
+			error_allocation(macro_count, macros, semels, semel_count, array, struct_DC, extern_labels, count_of_extern_labels);
 		}
 		*extern_labels = temp;
 	}
-
-	/* Record IC where the extern is referenced */
-	(*extern_labels)[*COUNT_OF_EXTERN_LABEL].addres = IC;
-
-	/* Copy the label name */
-	(*extern_labels)[*COUNT_OF_EXTERN_LABEL].name = (char*)malloc(strlen(str) + 1);
-	if ((*extern_labels)[*COUNT_OF_EXTERN_LABEL].name == NULL)
+	/* Record the current instruction counter (IC) where the external symbol is referenced */
+	(*extern_labels)[*count_of_extern_labels].addres = IC;
+	/* Allocate memory and copy the label name */
+	(*extern_labels)[*count_of_extern_labels].name = (char*)malloc(strlen(str) + 1);
+	if ((*extern_labels)[*count_of_extern_labels].name == NULL)
 	{
-		fprintf(stderr, "error, memory allocation failed\n");
-		error = 1;
-		return;
+		fprintf(stdout, "error, memory allocation failed\n");
+		error_allocation(macro_count, macros, semels, semel_count, array, struct_DC, extern_labels, count_of_extern_labels);
 	}
-	strcpy((*extern_labels)[*COUNT_OF_EXTERN_LABEL].name, str);
-
-	/* One more extern reference recorded */
-	(*COUNT_OF_EXTERN_LABEL)++;
+	strcpy((*extern_labels)[*count_of_extern_labels].name, str);
+	/* Increment the count of external references */
+	(*count_of_extern_labels)++;
 }
 
-int IC_command_analysis(char row[], SEMEL** SEMELS, int* semel_count, command cmd[], binary_code** array, extern_label **extern_labels, int* COUNT_OF_EXTERN_LABEL)
+int IC_command_analysis(char row[], SEMEL** semels, int* semel_count, command cmd[], binary_code** array, extern_label **extern_labels, int* count_of_extern_label,binary_directive **struct_DC,int macro_count, macro** macros)
 {
-	char *command;						/* Instruction mnemonic */
-	char *op1 = NULL;					/* First operand (if any) */
-	char *op2 = NULL;					/* Second operand (if any) */
-	char *op3;							/* Extra token check */
-	int opcode = -1;					/* Opcode from command table */
+	char *command;						/* Instruction mnemonic (e.g., "mov", "add") */
+	char *op1 = NULL;					/* First operand (source, if any) */
+	char *op2 = NULL;					/* Second operand (destination, if any) */
+	char *op3;							/* Used to detect extra operands (error condition) */
+	int opcode = -1;					/* Numeric opcode from command table */
 	int i = 0;							/* Loop index for cmd[] lookup */
-	int op1_val = 0;					/* Numeric/immediate/reg value for op1 */
-	int op2_val = 0;					/* Numeric/immediate/reg value for op2 */
-	int op1_type = -1;					/* Addressing mode of op1 */
-	int *op1_mat = NULL;				/* Matrix tuple for op1: [index, r1, r2] */
-	int *op2_mat = NULL;				/* Matrix tuple for op2: [index, r1, r2] */
+	int op1_val = 0;					/* Numeric/register value for op1 */
+	int op2_val = 0;					/* Numeric/register value for op2 */
+	int op1_type = -1;					/* Addressing mode of op1 (0=immediate, 1=direct, 2=matrix, 3=register) */
+	int *op1_mat = NULL;				/* Matrix access info for op1: [symbol_index, reg1, reg2] */
+	int *op2_mat = NULL;				/* Matrix access info for op2: [symbol_index, reg1, reg2] */
 	int op2_type = -1;					/* Addressing mode of op2 */
-	int flag1 = -1;						/* -1: none, 0: immediate/reg, 1: symbol, 2: matrix */
-	int flag2 = -1;						/* -1: none, 0: immediate/reg, 1: symbol, 2: matrix */
-	int semel_index = 0;				/* Symbol index for op1 */
-	int op2_semel_index = -1;			/* Symbol index for op2 */
-	int num_operands = 0;				/* Count of parsed operands */
-	int required_operands = 0;			/* Required count from cmd table */
-	int found_operand = 0;				/* Helper flag per operand */
-	char *temp_semel;
+	int flag1 = -1;						/* Operand type flag: -1=none, 0=immediate/reg, 1=symbol, 2=matrix */
+	int flag2 = -1;						/* Operand type flag for op2 */
+	int semel_index = 0;				/* Symbol table index for op1 */
+	int op2_semel_index = -1;			/* Symbol table index for op2 */
+	int num_operands = 0;				/* Count of operands found */
+	int required_operands = 0;			/* Required operand count from command definition */
+	int found_operand = 0;				/* Helper flag for operand validation */
+	char *temp_semel;					/* Temporary pointer for symbol name extraction */
+	int op1_mat1;
+	int op1_mat2;
+	int op2_mat1;
+	int op2_mat2;
+	int op_mat1_semel;
+	int op_mat2_semel;
+	int op_mat1_semel_ex_en;
+	int op_mat2_semel_ex_en;
 
+	/* Validate comma usage in the instruction line */
 	if (!(check_commas(row)))
 		return 0;
-
-	/* Instruction mnemonic */
+	/* Extract the instruction mnemonic (first token) */
 	command = strtok(row, " \t\n\r");
 	if (command == NULL)
 	{
-		fprintf(stderr, "error in line:%d Empty command\n", sum_of_row);
+		fprintf(stdout, "error in line:%d empty command\n", sum_of_row);
 		error = 1;
 		return 0;
 	}
-
-	/* Lookup opcode and operand count */
+	/* Look up the instruction in the command table to get opcode and operand count */
 	while (i < NUM_OF_IC_COMMAND)
 	{
 		if (strcmp(cmd[i].name, command) == 0)
 		{
-			opcode = cmd[i].op;
-			required_operands = cmd[i].param;
+			opcode = cmd[i].op;				/* Get numeric opcode */
+			required_operands = cmd[i].param;	/* Get required operand count */
 			break;
 		}
 		i++;
 	}
-
 	if (opcode == -1)
 	{
-		fprintf(stderr, "error in line:%d Unknown command %s\n", sum_of_row, command);
+		fprintf(stdout, "error in line:%d Unknown command %s\n", sum_of_row, command);
 		error = 1;
 		return 0;
 	}
-
-	/* Parse operand #1 if needed */
+	/* Parse operand #1 if the instruction requires operands */
 	if (required_operands >= 1)
 	{
 		if (required_operands == 2)
-			op1 = strtok(NULL, ",");	/* Two-operand mnemonics use comma */
+			op1 = strtok(NULL, ",");		/* Two-operand instructions: operands separated by comma */
 		else
-			op1 = strtok(NULL, " \t\n");
-
+			op1 = strtok(NULL, " \t\n");	/* Single-operand instructions: separated by whitespace */
 		if (op1 == NULL)
 		{
-			fprintf(stderr, "error in line:%d Missing operand in command %s\n", sum_of_row, command);
+			fprintf(stdout, "error in line:%d Missing operand in command %s\n", sum_of_row, command);
 			error = 1;
 			return 0;
 		}
-
-		/* Trim leading spaces */
+		/* Trim leading whitespace from operand */
 		while (*op1 == ' ' || *op1 == '\t')
 			op1++;
-
 		num_operands++;
 	}
-
-	/* Parse operand #2 if needed */
+	/* Parse operand #2 if the instruction requires two operands */
 	if (required_operands >= 2)
 	{
 		op2 = strtok(NULL, " ");
 		if (op2 == NULL)
 		{
-			fprintf(stderr, "error in line:%d Missing second operand in command %s\n", sum_of_row, command);
+			fprintf(stdout, "error in line:%d Missing second operand in command %s\n", sum_of_row, command);
 			error = 1;
 			return 0;
 		}
-
+		/* Trim leading whitespace from operand */
 		while (*op2 == ' ' || *op2 == '\t')
 			op2++;
-
 		num_operands++;
 	}
-
-	/* Ensure there is no third operand/token */
+	/* Check for extra operands (error condition) */
 	op3 = strtok(NULL, " \t\n");
 	if (op3 != NULL && strlen(op3) > 0)
 	{
-		fprintf(stderr, "error in line:%d too many operands in command %s\n", sum_of_row, command);
+		fprintf(stdout, "error in line:%d too many operands in command %s\n", sum_of_row, command);
 		error = 1;
 		return 0;
 	}
-
-	/* Operand count must match the command definition */
+	/* Verify operand count matches command requirements */
 	if (num_operands != required_operands)
 	{
 		if (num_operands < required_operands)
-			fprintf(stderr, "error in line:%d Missing operand in command %s\n", sum_of_row, command);
+			fprintf(stdout, "error in line:%d Missing operand in command %s\n", sum_of_row, command);
 		else
-			fprintf(stderr, "error in line:%d too many operands in command %s\n", sum_of_row, command);
-
+			fprintf(stdout, "error in line:%d too many operands in command %s\n", sum_of_row, command);
 		error = 1;
 		return 0;
 	}
-
-	/* ---- Operand #1 decoding ---- */
+	/* ---- OPERAND #1 ANALYSIS AND CLASSIFICATION ---- */
 	if (op1 != NULL)
-	{
-		/* Immediate */
-		if (is_valid_number(op1, 0))
-		{
-			/* Immediate allowed for opcodes <= OP_OF_FIRST_HASH_NUM or OP_OF_FIRST_HASH_NUM1 */
+	{	/* Check if operand is an immediate value (starts with #) */
+		if (is_valid_number(op1, Immediate_mode))
+		{	/* Immediate values are only allowed for certain instructions */
 			if (opcode <= OP_OF_FIRST_HASH_NUM || opcode == OP_OF_FIRST_HASH_NUM1)
-			{
-				op1_val = atoi(op1);
-				op1_type = ADDRESSING_MODE_HASH_NUM;	/* 0 */
-				flag1 = 0;
+			{	/* Convert to integer */
+				fprintf(stderr, "%d\n",op1_val);
+				if(op2_val>MAX_NUM_IN_8_BIT|| op2_val<MIN_NUM_IN_8_BIT)
+				{
+					error=1;
+					fprintf(stdout,"in line %d error: number to encode not in bit range\n", sum_of_row);
+					return 0;
+				}
+				op1_type = ADDRESSING_MODE_HASH_NUM;	/* Addressing mode: immediate (0) */
+				flag1 = 3;							/* Flag: immediate/register type */
 				found_operand = 1;
 			}
 			else
 			{
-				fprintf(stderr, "error in line:%d: Immediate operand not allowed for command %s\n", sum_of_row, command);
+				fprintf(stdout, "error in line:%d: Immediate operand not allowed for command %s\n", sum_of_row, command);
 				error = 1;
 				return 0;
 			}
 		}
-		/* Register */
+		/* Check if operand is a register (r0-r7) */
 		else if (reg(op1))
-		{
+		{	/* Registers not allowed as source operand for LEA instruction */
 			if (opcode != OP_OF_LEA)
 			{
-				op1_val = atoi(op1 + 1);				/* rN -> N */
-				op1_type = ADDRESSING_MODE_REG;			/* 3 */
-				flag1 = 0;
+				op1_val = atoi(op1 + 1);			/* Extract register number (rN -> N) */
+				op1_type = ADDRESSING_MODE_REG;		/* Addressing mode: register (3) */
+				flag1 = 0;							/* Flag: immediate/register type */
 				found_operand = 1;
 			}
 			else
 			{
-				fprintf(stderr, "error in line:%d: register operand not allowed for command %s\n", sum_of_row, command);
+				fprintf(stdout, "error in line:%d: register operand not allowed for command %s\n", sum_of_row, command);
 				error = 1;
 				return 0;
 			}
 		}
 		else
-		{
-			/* Matrix */
-			op1_mat = valid_matrix(op1, SEMELS, semel_count);
+		{	/* Check if operand is matrix access: name[reg][reg] */
+			op1_mat = valid_matrix(op1, semels, semel_count, extern_labels, count_of_extern_label, array, struct_DC, macro_count, &macros);
 			if (op1_mat != NULL)
 			{
-				op1_type = ADDRESSING_MODE_MATRIX;		/* 2 */
-				flag1 = 2;
+				op1_mat1=op1_mat[1];
+				op2_mat1=op1_mat[2];
+				op_mat1_semel=semels[op1_mat[0]]->addres;
+				op_mat1_semel_ex_en=semels[op1_mat[0]]->ex_en;
+				free(op1_mat);
+				op1_type = ADDRESSING_MODE_MATRIX;	/* Addressing mode: matrix (2) */
+				flag1 = 2;							/* Flag: matrix type */
 				found_operand = 1;
 			}
 			else
-			{
-				/* Symbol */
-				semel_index = valid_SEMEL(op1, SEMELS, semel_count);
+			{	/* Must be a symbol (label) reference */
+				semel_index = valid_SEMEL(op1, semels, semel_count);
 				if (semel_index != -1)
 				{
-					op1_val = SEMELS[semel_index]->addres;
-					op1_type = ADDRESSING_MODE_SEMEL;	/* 1 */
-					flag1 = 1;
+					op1_val = semels[semel_index]->addres;	/* Get symbol address */
+					op1_type = ADDRESSING_MODE_SEMEL;		/* Addressing mode: direct/symbol (1) */
+					flag1 = 1;								/* Flag: symbol type */
 					found_operand = 1;
 				}
 				else
 				{
-					fprintf(stderr, "error in line:%d Invalid operand: %s\n", sum_of_row, op1);
+					fprintf(stdout, "error in line:%d Invalid operand: %s\n", sum_of_row, op1);
 					error = 1;
 					return 0;
 				}
 			}
 		}
-
 		if (found_operand == 0)
 		{
 			error = 1;
-			fprintf(stderr, "error in line:%d unvalid operand", sum_of_row);
+			fprintf(stdout, "error in line:%d unvalid operand\n", sum_of_row);
 		}
 		found_operand = 0;
 	}
-
-	/* ---- Operand #2 decoding ---- */
+	/* ---- OPERAND #2 ANALYSIS AND CLASSIFICATION ---- */
 	if (op2 != NULL)
-	{
-		/* Immediate (destination immediate allowed only for cmp) */
-		if (is_valid_number(op2, 0))
+	{	/* Check if destination operand is immediate (only allowed for CMP instruction) */
+		if (is_valid_number(op2, Immediate_mode))
 		{
 			if (opcode == OP_OF_CMP)
 			{
 				op2_val = atoi(op2);
-				op2_type = ADDRESSING_MODE_HASH_NUM;	/* 0 */
-				flag2 = (op1_type == 0) ? 0 : 1;		/* Packing optimization if both regs */
+				if(op2_val>MAX_NUM_IN_8_BIT|| op2_val<MIN_NUM_IN_8_BIT)
+				{
+					error=1;
+					fprintf(stdout,"in line %d error: number to encode not in bit range\n", sum_of_row);
+					return 0;
+				}		
+				op2_type = ADDRESSING_MODE_HASH_NUM;	/* Addressing mode: immediate (0) */
+				flag2 = 3;		/* Optimization: pack if both immediate */
 				found_operand = 1;
 			}
 			else
 			{
-				fprintf(stderr, "error in line:%d Immediate operand not allowed as destination for command %s\n", sum_of_row, command);
+				fprintf(stdout, "error in line:%d Immediate operand not allowed as destination for command %s\n", sum_of_row, command);
 				error = 1;
 				return 0;
 			}
 		}
-		/* Register */
+		/* Check if destination operand is a register */
 		else if (reg(op2))
 		{
-			op2_val = atoi(op2 + 1);
-			op2_type = ADDRESSING_MODE_REG;				/* 3 */
-			flag2 = (op1_type == 3) ? 0 : 1;
+			op2_val = atoi(op2 + 1);				/* Extract register number */
+			op2_type = ADDRESSING_MODE_REG;			/* Addressing mode: register (3) */
+			flag2 = (op1_type == 3) ? 0 : 1;		/* Optimization: pack if both registers */
 			found_operand = 1;
 		}
 		else
-		{
-			/* Symbol */
-			op2_semel_index = valid_SEMEL(op2, SEMELS, semel_count);
+		{	/* Check if destination operand is a symbol */
+			op2_semel_index = valid_SEMEL(op2, semels, semel_count);
 			if (op2_semel_index != -1)
 			{
-				op2_val = SEMELS[op2_semel_index]->addres;
-				op2_type = ADDRESSING_MODE_SEMEL;		/* 1 */
-				flag2 = 1;
+				op2_val = semels[op2_semel_index]->addres;
+				op2_type = ADDRESSING_MODE_SEMEL;	/* Addressing mode: direct/symbol (1) */
+				flag2 = 1;							/* Flag: symbol type */
 				found_operand = 1;
 			}
 			else
-			{
-				/* Matrix */
-				op2_mat = valid_matrix(op2, SEMELS, semel_count);
+			{	/* Check if destination operand is matrix access */
+				op2_mat = valid_matrix(op2, semels, semel_count, extern_labels, count_of_extern_label, array, struct_DC, macro_count, &macros);
 				if (op2_mat != NULL)
 				{
-					op2_type = ADDRESSING_MODE_SEMEL;	/* Matrix is encoded as symbol + indices */
-					flag2 = 2;
+					op1_mat2=op2_mat[1];
+					op2_mat2=op2_mat[2];
+					op_mat2_semel=semels[op2_mat[0]]->addres;
+					op_mat2_semel_ex_en=semels[op2_mat[0]]->ex_en;
+					free(op2_mat);
+					op2_type = ADDRESSING_MODE_SEMEL;	/* Matrix encoded as symbol + indices */
+					flag2 = 2;							/* Flag: matrix type */
 					found_operand = 1;
 				}
 				else
 				{
-					fprintf(stderr, "error in line:%d Invalid operand: %s\n", sum_of_row, op2);
+					fprintf(stdout, "error in line:%d Invalid operand: %s\n", sum_of_row, op2);
 					error = 1;
 					return 0;
 				}
 			}
 		}
-
 		if (found_operand == 0)
 		{
 			error = 1;
-			fprintf(stderr, "error in line:%d unvalid operand", sum_of_row);
+			fprintf(stdout, "error in line:%d invalid operand\n", sum_of_row);
 		}
 	}
-
-	/* First word: opcode + addressing modes */
+	/* ---- MACHINE CODE GENERATION ---- */
+	/* Generate the first word: opcode + addressing modes */
 	if (op1_type == -1 && op2_type == -1)
-		to_binary(opcode, 0, 0, array);
+		to_binary(opcode, 0, 0, array,macro_count, &macros, semels, semel_count,struct_DC, extern_labels,count_of_extern_label);	/* No operands */
 	else if (op2_type == -1)
-		to_binary(opcode, 0, op1_type, array);
+		to_binary(opcode, 0, op1_type, array,macro_count, &macros, semels, semel_count,struct_DC, extern_labels,count_of_extern_label);	/* One operand */
 	else
-		to_binary(opcode, op1_type, op2_type, array);
-
-	/* Extra words (according to operand kinds) */
+		to_binary(opcode, op1_type, op2_type, array,macro_count, &macros, semels, semel_count,struct_DC, extern_labels,count_of_extern_label);/* Two operands */
+	/* Generate additional words for operands */
 	if (flag1 == -1 && flag2 == -1)
-		return 1;
+		return 1;								/* No additional words needed */
 	else if (flag2 == -1)
-	{
-		/* Only op1 needs extra word(s) */
+	{	/* Only operand 1 needs additional words */
+		/* Symbol reference - check if it's external and add to extern list */
 		if (op1_type == ADDRESSING_MODE_SEMEL)
 		{
-			if (SEMELS[semel_index]->ex_en == 1)
-				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op1);
-			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, SEMELS[semel_index]->ex_en);
+			if (semels[semel_index]->ex_en == 1)
+				add_to_extern_label(extern_labels, count_of_extern_label,op1, semels, semel_count , array, struct_DC, macro_count, &macros);
+			add_number(op1_val, TYPE_INSTRUCTION, semels[semel_index]->ex_en,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
 		}
+		/* Immediate value */
 		else if (op1_type == ADDRESSING_MODE_HASH_NUM)
-		{
-			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
-		}
+			add_number(op1_val, TYPE_INSTRUCTION, 0,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
+		/* Register - pack source and destination register in one word */
 		else if (op1_type == ADDRESSING_MODE_REG)
-		{
-			add_two_numbers(0, op1_val, array);
-		}
+			add_two_numbers(0, op1_val, array ,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
+		/* Matrix access - requires symbol address + register indices */
 		else if (op1_type == ADDRESSING_MODE_MATRIX)
 		{
-			if (SEMELS[op1_mat[0]]->ex_en == 1)
+			/* Check if matrix symbol is external */
+			if (op_mat1_semel_ex_en == 1)
 			{
-				temp_semel = strtok(op1, "[");
-				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, temp_semel);
+				temp_semel = strtok(op1, "[");		/* Extract symbol name before '[' */
+				add_to_extern_label(extern_labels, count_of_extern_label,temp_semel, semels, semel_count , array, struct_DC, macro_count, &macros);
 			}
-			add_number(SEMELS[op1_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op1_mat[0]]->ex_en);
-			add_two_numbers(op1_mat[1], op1_mat[2], array);
-			free(op1_mat);
+			/* Add matrix base address */
+			add_number(op_mat1_semel, TYPE_INSTRUCTION, op_mat1_semel_ex_en,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
+			/* Add register indices for matrix access */
+			add_two_numbers(op1_mat1, op2_mat1, array ,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
 			op1_mat = NULL;
 		}
 	}
-	else if (flag1 + flag2 == 0)	/* Both regs -> pack in one word */
-	{
-		add_two_numbers(op1_val, op2_val, array);
-	}
+	/* Special case: both operands are registers - pack them in one word */
+	else if (flag1 + flag2 == 0)	/* Both flags are 0 (register) */
+		add_two_numbers(op1_val, op2_val, array,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
 	else if (flag1 == 2)
-	{
-		/* op1 is matrix */
-		if (SEMELS[op1_mat[0]]->ex_en == 1)
+	{	/* Operand 1 is matrix - generate matrix access code */
+		if (op_mat1_semel_ex_en  == 1)
 		{
 			temp_semel = strtok(op1, "[");
-			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, temp_semel);
+			add_to_extern_label(extern_labels, count_of_extern_label,temp_semel, semels, semel_count , array, struct_DC, macro_count, &macros);
 		}
-		add_number(SEMELS[op1_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op1_mat[0]]->ex_en);
-		add_two_numbers(op1_mat[1], op1_mat[2], array);
-		free(op1_mat);
+		add_number(op_mat1_semel , TYPE_INSTRUCTION, op_mat1_semel_ex_en,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
+		add_two_numbers(op1_mat1, op2_mat1, array ,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
 		op1_mat = NULL;
 	}
 	else if (flag1 == 1)
-	{
-		/* op1 is symbol */
-		if (SEMELS[semel_index]->ex_en == 1)
-			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op1);
-		add_number(op1_val, (void**)array, TYPE_INSTRUCTION, SEMELS[semel_index]->ex_en);
+	{	/* Operand 1 is symbol */
+		if (semels[semel_index]->ex_en == 1)
+			add_to_extern_label(extern_labels, count_of_extern_label,op1, semels, semel_count , array, struct_DC, macro_count, &macros);
+		add_number(op1_val, TYPE_INSTRUCTION, semels[semel_index]->ex_en,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
 	}
 	else
-	{
-		/* op1 immediate/reg */
+	{	/* Operand 1 is immediate or register */
 		if (op1_type == ADDRESSING_MODE_HASH_NUM)
-			add_number(op1_val, (void**)array, TYPE_INSTRUCTION, 0);
+			add_number(op1_val, TYPE_INSTRUCTION, 0,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
 		if (op1_type == ADDRESSING_MODE_REG)
-			add_two_numbers(op1_val, 0, array);
+			add_two_numbers(op1_val, 0, array ,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
 	}
-
-	/* Extra words for op2 if present */
+	/* Generate additional words for operand 2 if present */
 	if (flag2 == 2)
-	{
-		/* op2 is matrix */
-		if (SEMELS[op2_mat[0]]->ex_en == 1)
+	{	/* Operand 2 is matrix */
+		if (op_mat2_semel_ex_en == 1)
 		{
 			temp_semel = strtok(op2, "[");
-			add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, temp_semel);
+			add_to_extern_label(extern_labels, count_of_extern_label,temp_semel, semels, semel_count , array, struct_DC, macro_count, &macros);
 		}
-		add_number(SEMELS[op2_mat[0]]->addres, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_mat[0]]->ex_en);
-		add_two_numbers(op2_mat[1], op2_mat[2], array);
-		free(op2_mat);
+		add_number (op_mat2_semel, TYPE_INSTRUCTION, op_mat2_semel_ex_en,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
+		add_two_numbers(op1_mat2, op2_mat2, array ,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
 		op2_mat = NULL;
 	}
 	else if (flag2 == 1)
-	{
-		/* op2 is symbol/immediate/reg */
-		if (op2_type == ADDRESSING_MODE_SEMEL)
+	{	/* Operand 2 is symbol, immediate, or register */
+		if (op2_type == ADDRESSING_MODE_SEMEL)/*symbol*/
 		{
-			if (SEMELS[op2_semel_index]->ex_en == 1)
-				add_to_extern_label(extern_labels, COUNT_OF_EXTERN_LABEL, op2);
-			add_number(op2_val, (void**)array, TYPE_INSTRUCTION, SEMELS[op2_semel_index]->ex_en);
+			if (semels[op2_semel_index]->ex_en == 1)
+				add_to_extern_label(extern_labels, count_of_extern_label,op2, semels, semel_count , array, struct_DC, macro_count, &macros);
+			add_number(op2_val, TYPE_INSTRUCTION, semels[op2_semel_index]->ex_en,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
 		}
-		else if (op2_type == ADDRESSING_MODE_HASH_NUM)
-		{
-			add_number(op2_val, (void**)array, TYPE_INSTRUCTION, 0);
-		}
-		else
-		{
-			add_two_numbers(0, op2_val, array);
-		}
+		else    /*register*/
+			add_two_numbers(0, op2_val, array ,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
 	}
-
+	else if (op2_type == ADDRESSING_MODE_HASH_NUM)/*immediate*/
+			add_number(op2_val, TYPE_INSTRUCTION, 0,macro_count, &macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_label);
 	return 0;
 }
 
-void data(char row[], binary_directive** struct_DC)
+void data(char row[], binary_directive** struct_DC,int macro_count,macro*** macros,SEMEL** semels,int* semel_count,binary_code **array, extern_label**extern_labels, int *count_of_extern_labels)
 {
 	char *op1;							/* Current token after .data */
 	int value;							/* Parsed integer value */
 
+	/* Validate comma usage in the directive */
 	if (!(check_commas(row)))
 		return;
-	/* Skip the directive token itself */
+	/* Skip the directive token itself (.data) */
 	op1 = strtok(row, " ");
-	op1 = strtok(NULL, ",");
-	/* Parse comma-separated integers */
-	while (op1 != NULL)
+	op1 = strtok(NULL, ",");			/* Get first value (comma-separated) */
+	/* Parse comma-separated integers and add them to data section */
+	if(op1!=NULL)
 	{
-		/* Trim leading spaces on the token */
+		while (*op1 == ' ' || *op1 == '\t')  
+        		op1++;
+	}
+	if (op1 == NULL || *op1 == '\0') 
+	{
+    		error = 1;
+    		fprintf(stdout, "in line %d error: .data must contain at least one number\n", sum_of_row);
+    		return;
+	}
+	while (op1 != NULL)
+	{	/* Trim leading whitespace from the current token */
 		while (*op1 == ' ' || *op1 == '\t')
 			op1++;
-		/* Validate integer token */
-		if (is_valid_number(op1, 1))
+		/* Validate that the token is a valid integer */
+		if (is_valid_number(op1, valid_num))
 		{
-			value = atoi(op1);
-			add_number(value, (void**)struct_DC, TYPE_DIRECTIVE, 4);
+			value = atoi(op1);				/* Convert string to integer */
+			/* Add the integer to data section with type 4 (regular data) */
+			add_number(value, TYPE_DIRECTIVE, 4,macro_count, macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_labels);
 		}
 		else
 		{
-			fprintf(stderr, "in line %d error: Invalid operand: %s\n", sum_of_row, op1);
+			fprintf(stdout, "in line %d error: Invalid operand: %s\n", sum_of_row, op1);
 			error = 1;
+			return;
 		}
-
-		op1 = strtok(NULL, ",");
+		op1 = strtok(NULL, ",");		/* Get next comma-separated value */
 	}
 }
 
-void string(char row[], binary_directive** struct_DC)
+void string(char row[], binary_directive** struct_DC,int macro_count,macro*** macros,SEMEL** semels,int* semel_count,binary_code **array, extern_label**extern_labels, int *count_of_extern_labels)
 {
-	char *start_quote;					/* Pointer to opening quote */
-	char *end_quote;					/* Pointer to closing quote */
-	int i;								/* Loop index over string characters */
-
+	char *start_quote=NULL;					/* Pointer to opening quote character */
+	char *end_quote=NULL;					/* Pointer to closing quote character */
+	int i;
+	
+	/* Validate string syntax */
 	if (!(string_commas_check(row)))
 		return;
-	/* Find the first '"' */
+	/* Find the first '"' character in the line */
 	start_quote = strchr(row, '"');
-	/* Find the matching '"' */
-	end_quote = strchr(start_quote + 1, '"');
-	/* Emit characters between the quotes as bytes */
-	if (end_quote != NULL && start_quote != NULL)
+	/* Find the matching closing '"' character */
+	end_quote = strrchr(start_quote + 1, '"');
+    	if (!end_quote || end_quote <= start_quote)
+        	return;
+	/* Iterate through characters between quotes (excluding the quotes themselves) */
+	for (i = 1; start_quote + i < end_quote; i++)
 	{
-		for (i = 1; start_quote + i < end_quote; i++)
-		{
-			char c = start_quote[i];
-			add_number((int)c, (void**)struct_DC, TYPE_DIRECTIVE, 4);
-		}
+		unsigned char c = start_quote[i];		/* Get current character */
+		/* Add character as integer value to data section */
+		add_number((int)c, TYPE_DIRECTIVE, 4,macro_count, macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_labels);
 	}
-	/* Terminate string with '\0' */
-	add_number(0, (void**)struct_DC, TYPE_DIRECTIVE, 4);
+	/* Add null terminator '\0' to end the string */
+	add_number(0, TYPE_DIRECTIVE, 4,macro_count, macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_labels);
 }
 
 int string_commas_check(char *row)
 {
 	char *colon;
-	/* Move to the character after the 'g' of ".string" (per original parsing logic) */
-	colon = strchr(row, 'g') + 1;
-	/* Skip spaces until newline or non-space */
-	while ((isspace(*colon)) && (*colon != '\n'))
+	char *open;
+	char *close;
+	/* Move to the character after the 'g' of ".string" */
+	/* This finds the end of the directive name */
+	colon = strstr(row, ".string");
+	colon += strlen(".string");
+	/* Skip whitespace until newline or non-space character */
+	while ((isspace(*colon)) && (*colon != '\n') && (*colon != '\0'))
 		colon++;
-	/* The next non-space must be the opening quote */
+	/* The next non-space character must be the opening quote */
 	if (*colon != '"')
-	{
+	{	
 		error = 1;
-		fprintf(stderr, "in line:%d unexpected char\n", sum_of_row);
+		fprintf(stdout, "in line:%d unexpected char\n", sum_of_row);
 		return 0;
-	}
-	else
+	}	
+	open = colon;		
+	close = strrchr(open + 1, '"');
+	if (!close) 
 	{
-		colon += 1;
-		colon = strchr(colon, '"') + 1;		/* Move past the closing quote */
-		if (colon == NULL)
-		{
-			error = 1;
-			fprintf(stderr, "in line:%d missing last quotes\n", sum_of_row);
-			return 0;
-		}
-		/* Only whitespace is allowed after the closing quote up to newline */
-		while (isspace(*colon) && *colon != '\n')
-			colon++;
-
-		if (*colon != '\n')
-		{
-			error = 1;
-			fprintf(stderr, "in line:%d unexpected char\n", sum_of_row);
-			return 0;
-		}
-	}
-	return 1;
+        	error = 1;
+        	fprintf(stdout, "in line:%d missing last quotes\n", sum_of_row);
+        	return 0;
+    	}
+	colon = close + 1;
+    	while (isspace((unsigned char)*colon) && *colon != '\n' && *colon != '\0')
+        	colon++;
+    	if (*colon != '\n' && *colon != '\0') 
+	{
+        	error = 1;
+        	fprintf(stdout, "in line:%d unexpected char\n", sum_of_row);
+        	return 0;
+    	}
+    	return 1;
 }
 
-void mat(char row[], binary_directive** struct_DC)
+void mat(char row[], binary_directive** struct_DC,int macro_count,macro*** macros,SEMEL** semels,int* semel_count,binary_code **array, extern_label**extern_labels, int *count_of_extern_labels)
 {
-	char *open1, *close1, *open2, *close2, *after_brackets;	/* Bracket pointers */
-	int row_val, col_val;										/* Matrix dimensions */
-	char temp[31];												/* Temp buffer for bracket content */
-	char *token;												/* Token for initialization list */
-	/* Normalize commas/spacing first */
+	char *open1, *close1, *open2, *close2, *after_brackets;	/* Bracket position pointers */
+	int row_val, col_val;										/* Matrix dimensions (rows, columns) */
+	char temp[MAX_LEN_OF_ROW];											/* Temporary buffer for extracting bracket content */
+	char *token;												/* Token for parsing initialization values */
+	int i;
+	
+	/* Validate comma usage in the directive */
 	if (!check_commas(row))
 		return;
-	/* First pair of brackets: rows */
+	/* Parse matrix dimensions from brackets: .mat [rows][cols] */
+	/* Find first pair of brackets for row dimension */
 	open1 = strchr(row, '[');
 	if (!open1)
 	{
 		fprintf(stderr, "in line %d error,Missing first '['\n", sum_of_row);
 		error = 1;
+		return;
 	}
 	close1 = strchr(open1, ']');
 	if (!close1 || close1 < open1)
 	{
 		fprintf(stderr, "in line %d error, Missing first ']'\n", sum_of_row);
 		error = 1;
+		return;
 	}
-	/* Second pair of brackets: columns */
+	/* Find second pair of brackets for column dimension */
 	open2 = strchr(close1, '[');
 	if (!open2)
 	{
 		fprintf(stderr, "in line %d error, Missing second '['\n", sum_of_row);
 		error = 1;
+		return;
 	}
 	close2 = strchr(open2, ']');
 	if (!close2 || close2 < open2)
 	{
 		fprintf(stderr, "in line %d error, Missing second ']'\n", sum_of_row);
 		error = 1;
+		return;
 	}
-	/* Extract row dimension */
-	strncpy(temp, open1 + 1, close1 - open1 - 1);
-	temp[close1 - open1 - 1] = '\0';
-	if (!is_valid_number(temp, 2))
+	/* Extract and validate row dimension */
+	strncpy(temp, open1 + 1, close1 - open1 - 1);		/* Copy content between first [ ] */
+	temp[close1 - open1 - 1] = '\0';					/* Null terminate */
+	if (!is_valid_number(temp, positive_num))						/* Mode 2: unsigned integers only */
 	{
 		fprintf(stderr, "in line %d error, Invalid row number\n", sum_of_row);
 		error = 1;
+		return;
 	}
 	else
-	{
 		row_val = atoi(temp);
+	if(row_val==0)
+	{
+		fprintf(stderr, "in line %d error, Invalid row number\n", sum_of_row);
+		error=1;
+		return;
 	}
-	/* Extract column dimension */
-	strncpy(temp, open2 + 1, close2 - open2 - 1);
-	temp[close2 - open2 - 1] = '\0';
-	if (!is_valid_number(temp, 2))
+	/* Extract and validate column dimension */
+	strncpy(temp, open2 + 1, close2 - open2 - 1);		/* Copy content between second [ ] */
+	temp[close2 - open2 - 1] = '\0';					/* Null terminate */
+	if (!is_valid_number(temp, positive_num))						/* Mode 2: unsigned integers only */
 	{
 		fprintf(stderr, "in line %d error, Invalid col number\n", sum_of_row);
 		error = 1;
+		return;
 	}
 	else
-	{
 		col_val = atoi(temp);
-	}
-	/* Initialization values come after the second ']' */
-	after_brackets = close2 + 1;
-	/* No initialization list: fill with zeros */
-	if (*after_brackets == '\0')
+	if(col_val==0)
 	{
-		int i;
+		fprintf(stderr, "in line %d error, Invalid row number\n", sum_of_row);
+		error=1;
+		return;
+	}
+	/* Process initialization values (if any) after the brackets */
+	after_brackets = close2 + 1;
+	while (*after_brackets == ' ' || *after_brackets == '\t')
+		after_brackets++;
+	/* Check if initialization values are provided */
+	if (*after_brackets == '\0')
+	{	/* No initialization list provided - fill matrix with zeros */
 		for (i = 0; i < row_val * col_val; i++)
-			add_number(0, (void**)struct_DC, TYPE_DIRECTIVE, 4);
+			add_number(0, TYPE_DIRECTIVE, 4,macro_count, macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_labels);
 	}
 	else
-	{
-		/* Parse comma-separated initial values */
+	{	/* Parse comma-separated initialization values */
+		i=0;
 		token = strtok(after_brackets, ",");
 		while (token != NULL)
-		{
-			if (!is_valid_number(token, 1))
+		{	/* Validate each initialization value */
+			if (!is_valid_number(token, valid_num))				/* Mode 1: signed integers */
 			{
 				fprintf(stderr, "in line %d error, Invalid number: %s\n", sum_of_row, token);
 				error = 1;
+				return;
 			}
-			else
+			else 
 			{
-				add_number(atoi(token), (void**)struct_DC, TYPE_DIRECTIVE, 4);
+				if(i>row_val * col_val) /*There are more numbers than the matrix can hold.*/
+				{
+					error=1;
+					fprintf(stderr, "in line %d error, There are more values than fit in the matrix.\n", sum_of_row);
+					return;
+				}
+				add_number(atoi(token), TYPE_DIRECTIVE, 4,macro_count, macros, semels, semel_count, array,struct_DC, extern_labels,count_of_extern_labels);
+				i++;  /*Count the number of values*/
 			}
-			token = strtok(NULL, ",");
+		token = strtok(NULL, ",");					/* Get next value */
+		}
+		while(i<row_val * col_val)
+		{
+			add_number(0, TYPE_DIRECTIVE, 4,macro_count, macros, semels, semel_count,array, struct_DC, extern_labels, count_of_extern_labels);
+			i++;
 		}
 	}
 }
 
 void entry_extern(char row[])
 {
-	char *command;						/* Directive name: .entry / .extern */
-	char *extra;						/* Used to detect extra params */
+	char *command;						/* Directive name: .entry or .extern */
+	char *extra;						/* Used to detect extra parameters */
 
-	command = strtok(row, " \t\n\r");	/* .entry / .extern */
-	extra = strtok(NULL, " \t\n\r");	/* Skip the label name */
-	extra = strtok(NULL, " \t\n\r");	/* Anything else is an error */
+	command = strtok(row, " \t\n\r");	/* Extract directive name (.entry/.extern) */
+	extra = strtok(NULL, " \t\n\r");	/* Skip the label name parameter */
+	extra = strtok(NULL, " \t\n\r");	/* Check for extra parameters (should be NULL) */
 
+	/* Validate comma usage */
 	if (!(check_commas(row)))
 		return;
-	/* No extra parameters are allowed */
+	/* These directives should have exactly one parameter (the label name) */
 	if (extra != NULL)
 	{
 		fprintf(stderr, "in line %d error, too many parameters in func %s\n", sum_of_row, command);
 		error = 1;
 	}
 }
-

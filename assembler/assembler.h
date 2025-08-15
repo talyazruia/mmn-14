@@ -37,8 +37,33 @@
 #define OP_OF_FIRST_HASH_NUM1 13
 #define OP_OF_CMP 1
 #define OP_OF_LEA 4
+#define start_IC 100
+#define TWO_BITS_MASK 0x03  /* Binary mask: 00000011 */
+#define FOUR_BITS_MASK 0x0F  /* Binary mask: 00001111 */
+#define SHIFT_START_A  6  /* Initial shift for extracting first base4 digit */
+#define BASE4_STR_TOTAL_LEN 6 /* BASE4_STR_LEN plus terminating '\0' */
+#define num_of_bit 4
+#define num_bits 2
+#define BASE4_STR_LEN 5	/* 4 chars for 'a'..'d' + 1 extra for b's top-2 bits */
+#define ex_en_rgular_label 2
+#define type_ex 2/*type for extern*/
+#define ex_en_ex_label 1
+#define type_en 1/*type for entry*/
+#define ex_en_en_label 0
+#define Immediate_mode 0
+#define valid_num 1
+#define positive_num 2
+#define semel_type 1
+#define macro_type 0
+#define LEN_OF_BASE_4_ROW_IC 4
+#define LEN_OF_BASE_4_ROW_DC 4
+#define MAX_NUM_IN_10_BIT 511
+#define MIN_NUM_IN_10_BIT -512
+#define MAX_NUM_IN_8_BIT 127
+#define MIN_NUM_IN_8_BIT -128
+
 /* File type enumeration */
-enum FileType { AM = 1, OB, EXT, ENT };
+enum FileType { AM=1 , OB, EXT, ENT };
 
 /* Symbol (label) structure */
 typedef struct {
@@ -96,13 +121,12 @@ typedef enum {
 extern int IC; /* Instruction Counter */
 extern int DC; /* Data Counter */
 extern int error; /* Error flag */
-
 extern int current_size_instaction_struct; /* Number of elements in binary_code array */
 extern int current_size_directive_struct;  /* Number of elements in binary_directive array */
 extern int sum_of_row; /* Current input code line number being analyzed */
+extern int count_of_entry_labels;/*count entry labels*/
 
-/* =========================================================================
- * Function: macro_analysis
+/* 
  * -------------------------------------------------------------------------
  * Description:
  *   Processes a source file to detect and expand user-defined macros.
@@ -117,9 +141,8 @@ extern int sum_of_row; /* Current input code line number being analyzed */
  *
  * Returns:
  *   FILE* pointer to the created `.am` file, or NULL if an error occurred.
- * =========================================================================
  */
-FILE * macro_analysis(FILE *f1, command cmd[], command1 cmd1[], int argc, char *argv[], int i, macro*** macros_out, int* macro_count_out);
+FILE * macro_analysis(FILE *f1, command cmd[],int argc, char*  argv[], int i, macro*** macros_out,int* mcro_count_out, SEMEL** semels, int* semel_count, binary_code **array, binary_directive **struct_DC, extern_label**extern_labels, int *count_of_extern_labels);
 
 #endif
 
