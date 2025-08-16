@@ -437,6 +437,7 @@ int IC_command_analysis(char row[], SEMEL** semels, int* semel_count, command cm
 			if (opcode <= OP_OF_FIRST_HASH_NUM || opcode == OP_OF_FIRST_HASH_NUM1)
 			{	/* Convert to integer */
 				fprintf(stderr, "%d\n",op1_val);
+				op1_val = atoi(op1);
 				if(op2_val>MAX_NUM_IN_8_BIT|| op2_val<MIN_NUM_IN_8_BIT)
 				{
 					error=1;
@@ -624,7 +625,7 @@ int IC_command_analysis(char row[], SEMEL** semels, int* semel_count, command cm
 		}
 	}
 	/* Special case: both operands are registers - pack them in one word */
-	else if (flag1 + flag2 == 0)	/* Both flags are 0 (register) */
+	else if (flag1 + flag2==0  )	/* Both flags are 0 (register) */
 		add_two_numbers(op1_val, op2_val, array,macro_count, &macros, semels, semel_count, struct_DC, extern_labels, count_of_extern_label);
 	else if (flag1 == 2)
 	{	/* Operand 1 is matrix - generate matrix access code */

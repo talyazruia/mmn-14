@@ -64,7 +64,6 @@ void BinaryToBase4( int argc, char* argv[], int i, FILE* f2, int struct_type, in
 			/* Validate input parameters to prevent null pointer errors */
 			if (!array||!*array) 
 			{
-				fprintf(stdout,"error: array is NULL\n");
 				return;
 			}
 			/* Iterate through all instruction structures in the array */
@@ -92,7 +91,6 @@ void BinaryToBase4( int argc, char* argv[], int i, FILE* f2, int struct_type, in
 			j=0;     /* Initialize array index counter */
 			if (!struct_DC||!*struct_DC) 
 			{
-				fprintf(stdout,"error: array is NULL\n");
 				return;
 			}
 			/* Iterate through all directive structures in the array */
